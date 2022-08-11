@@ -1,4 +1,4 @@
 /.idea/
 /.gradle/
 /build/
-/src/main/java/eu/greev/dcbot/utils/Data.java
+/src/main/java/eu/greev/dcbot/utils/data/

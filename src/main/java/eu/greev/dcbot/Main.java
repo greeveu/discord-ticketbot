@@ -1,6 +1,7 @@
 package eu.greev.dcbot;
 
-import eu.greev.dcbot.utils.Data;
+import eu.greev.dcbot.ticketsystem.TicketListener;
+import eu.greev.dcbot.utils.data.Data;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -34,7 +35,7 @@ public class Main extends ListenerAdapter {
                 .setActivity(Activity.listening(" ticket commands."))
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
-        jda.addEventListener(new Main());
+        jda.addEventListener(new Main(), new TicketListener(jda));
         jda.awaitReady();
 
         List<CommandData> commands = new ArrayList<>();
@@ -47,6 +48,16 @@ public class Main extends ListenerAdapter {
     }
 
     private static void createCommands(List<CommandData> commands) {
+        /*OptionData help = new OptionData(OptionType.STRING, "commands", "Possible commands", false);
+        help.addChoices(
+                new Command.Choice("add", "add"),
+                new Command.Choice("remove", "remove"),
+                new Command.Choice("create", "create"),
+                new Command.Choice("close", "close"),
+                new Command.Choice("claim", "claim"),
+                new Command.Choice("set-handler", "handler")
+                );*/
+
         commands.add(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("setup", "Setup the System"))
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
@@ -59,7 +70,9 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.STRING, "reason", "The reason the ticket was closed", false))
                 .addSubcommands(new SubcommandData("claim", "Claim this ticket"))
                 .addSubcommands(new SubcommandData("help", "Display help menu"))
-                .addSubcommands(new SubcommandData("set-handler", "Sets the new handler"))
+                        //.addOptions(help))
+                .addSubcommands(new SubcommandData("supporter", "Sets the new supporter")
+                        .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
 
                 //.addSubcommands(new SubcommandData("clear-config", "Clear the config for the TicketManager"))
         );
