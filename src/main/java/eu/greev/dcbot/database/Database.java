@@ -4,7 +4,6 @@ import eu.greev.dcbot.Main;
 
 import java.io.*;
 import java.sql.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class Database {
