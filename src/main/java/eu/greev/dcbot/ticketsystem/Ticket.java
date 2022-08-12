@@ -15,40 +15,22 @@ import java.util.concurrent.TimeUnit;
 public class Ticket {
     private User owner;
     private User supporter;
-    private String topic;
+    private String topic = "No topic given";
     private final String id;
     private final JDA jda;
     private final long serverID = new Data().testID;
     private final long staffID = new Data().teamID;
-    private final long supportCategory = new Data().teamID;
-    private final TextChannel baseChannel;
+    private TextChannel ticketChannel;
 
     protected Ticket(User owner, JDA jda) {
         this.owner = owner;
         this.jda = jda;
-        baseChannel = jda.getTextChannelById(new Data().baseChannel);
         id = "";
     }
 
-    protected Ticket(Ticket ticket, JDA jda) {
-        this.owner = ticket.getOwner();
+    protected Ticket(long ticketChannelId, JDA jda) {
         this.jda = jda;
-        baseChannel = jda.getTextChannelById(new Data().baseChannel);
         id = "";
-    }
-
-    protected void setup() {
-        EmbedBuilder builder = new EmbedBuilder();
-        builder.setFooter("Powered by Greev.eu", "https://cdn.discordapp.com/emojis/355825850152779786.webp?size=96&quality=lossless");
-        builder.addField(new MessageEmbed.Field("**Support request**", """
-                You have questions or a problem?
-                Just click the button below or use `/ticket create` somewhere else.
-                We will try to handle your ticket as soon as possible.
-                """, false));
-        builder.setColor(new Color(63,226,69,255));
-        baseChannel.sendMessageEmbeds(builder.build())
-                .setActionRow(Button.primary("ticket-base", "Create Ticket").withEmoji(Emoji.fromUnicode("\uD83D\uDCE9")))
-                .queue();
     }
 
     //under development
@@ -57,7 +39,6 @@ public class Ticket {
         if (!jda.getGuildById(serverID).getTextChannelsByName(member.getEffectiveName().toLowerCase() + "ticket", true).isEmpty()) {
 
             String ticketMention = jda.getGuildById(serverID).getTextChannelsByName(member.getEffectiveName().toLowerCase() + "-ticket", true).get(0).getAsMention();
-            //return if false ->   event.reply("Es befindet sich bereits ein offenes Ticket für sie hier -> " + ticketMention).setEphemeral(true).queue();
             return false;
         }
 
@@ -65,10 +46,11 @@ public class Ticket {
                 .addRolePermissionOverride(jda.getGuildById(serverID).getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(staffID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(member.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
+                .setTopic(member.getAsMention() + " | " + topic)
                 .queueAfter(500, TimeUnit.MILLISECONDS, success -> {
-                    MessageChannel ticketChannel = null;
+                    TextChannel ticketChannel = null;
                     for (int i = 0; i < jda.getGuildById(serverID).getTextChannels().size(); i++) {
-                        MessageChannel channel = jda.getGuildById(serverID).getTextChannels().get(i);
+                        TextChannel channel = jda.getGuildById(serverID).getTextChannels().get(i);
                         if (channel.getName().equals(member.getEffectiveName().toLowerCase() + "-ticket")) {
                             ticketChannel = channel;
                             /*file.set("tickets." + ticketChannel.getId() + ".closeReason", "Not specified yet");
@@ -83,6 +65,7 @@ public class Ticket {
                             In the mean time, please describe your issue in as much detail as possible! :)
                             """, false));
 
+                    this.ticketChannel = ticketChannel;
                     ticketChannel.sendMessageEmbeds(builder.build())
                             .setActionRow(Button.primary("ticket-claim", "Claim").withEmoji(Emoji.fromUnicode("\uD83C\uDF9F")),
                                     Button.danger("ticket-close", "Close").withEmoji(Emoji.fromUnicode("\uD83D\uDD12")),
@@ -90,7 +73,6 @@ public class Ticket {
                             .queueAfter(10, TimeUnit.MILLISECONDS, s -> {
                                 //file.set("tickets." + finalTicketChannel.getId() + ".ticketEmbedId", s.getId());
                             });
-                    //return if true ->   event.reply("Es wurde erfolgreich ein Ticket für dich erstellt ->" + ticketChannel.getAsMention()).setEphemeral(true).queue();
                 });
         return true;
     }
@@ -99,17 +81,26 @@ public class Ticket {
 
     }
 
-    protected void addUser(User user) {
-
+    protected boolean addUser(User user) {
+        if (getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user)).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            return false;
+        }else {
+            getTicketChannel().upsertPermissionOverride((IPermissionHolder) user).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            return true;
+        }
     }
 
-    protected void removeUser(User user) {
-
+    protected boolean removeUser(User user) {
+        if (getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user)).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            getTicketChannel().upsertPermissionOverride((IPermissionHolder) user).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            return true;
+        }else {
+            return false;
+        }
     }
 
-    protected void claim(User claimer) {
-
-        this.supporter = claimer;
+    protected TextChannel getTicketChannel() {
+        return ticketChannel;
     }
 
     protected void saveTicket() {
@@ -125,11 +116,11 @@ public class Ticket {
     }
 
     protected boolean setSupporter(User supporter) {
-        if (((Member) supporter).getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID))) {
+        if (((Member) supporter).getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID)) && this.supporter != supporter) {
+            getTicketChannel().getManager().setTopic(getOwner().getAsMention() + " | " + topic + " | " + supporter.getAsMention()).queue();
             this.supporter = supporter;
             return true;
         }else {
-            //if false -> event.reply("This member isn't in the staff team").setEphemeral(true).queue();
             return false;
         }
     }
@@ -140,10 +131,6 @@ public class Ticket {
 
     protected void setTopic(String topic) {
         this.topic = topic;
-    }
-
-    protected String getTopic() {
-        return topic;
     }
 
     protected String getID() {
