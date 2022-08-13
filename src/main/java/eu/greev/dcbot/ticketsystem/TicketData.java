@@ -1,5 +1,7 @@
 package eu.greev.dcbot.ticketsystem;
 
+import eu.greev.dcbot.database.Database;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,76 +11,92 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TicketData {
-    private final Connection connection;
+    private final String ticketId;
 
-    public TicketData(Connection connection) {
-        this.connection = connection;
+    public TicketData(String ticketId) {
+        this.ticketId = ticketId;
+
+        if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
+            try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO tickets(ticketID, creator, supporter, involved) VALUES(?, '', '', '')"
+            )) {
+                statement.setString(1, ticketId);
+                statement.execute();
+            } catch (SQLException e) {
+                System.out.println("Could not set ticketID: " + e);
+            }
+        }
     }
 
-    public void setSupporter(String ticketId, String supporter) {
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "UPSERT INTO tickets(ticketID, supporter) VALUES(?,?);"
+    public void setSupporter(String supporter) {
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "UPDATE tickets SET supporter =? WHERE ticketID =?"
         )) {
             statement.setString(1, ticketId);
             statement.setString(2, supporter);
-            statement.execute();
+            statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Could not set supporter: " + e);
         }
     }
 
-    public void setCreator(String ticketId, String creator) {
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "UPSERT INTO tickets(ticketID, creator) VALUES(?,?);"
+    public void setCreator(String creator) {
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "UPDATE tickets SET creator = ? WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
             statement.setString(2, creator);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println("Could not set Creator: " + e);
+            System.out.println("Could not set creator: " + e);
         }
     }
 
-    public long getCreator(String ticketID) {
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "SELECT creator FROM tickets WHERE ticketID = ?;"
+    public String getCreator() {
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "SELECT creator FROM tickets WHERE ticketID = ?"
         )) {
-            statement.setString(1, ticketID);
+            statement.setString(1, ticketId);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getLong("creator");
+                return resultSet.getString("creator");
             }
         } catch (SQLException e) {
             System.out.println("Could not get creator: " + e);
         }
-        return 0;
+        return "";
     }
 
-    public long getSupporter(String ticketID) {
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "SELECT supporter FROM tickets WHERE ticketID = ?;"
+    public String getSupporter() {
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "SELECT supporter FROM tickets WHERE ticketID = ?"
         )) {
-            statement.setString(1, ticketID);
+            statement.setString(1, ticketId);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getLong("supporter");
+                return resultSet.getString("supporter");
             }
         } catch (SQLException e) {
             System.out.println("Could not get supporter: " + e);
         }
-        return 0;
+        return "";
     }
 
-    public List<String> getInvolved(String ticketID) {
+    public List<String> getInvolved() {
         List<String> involved = new ArrayList<>();
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "SELECT involved FROM tickets WHERE ticketID = ?;"
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "SELECT involved FROM tickets WHERE ticketID = ?"
         )) {
-            statement.setString(1, ticketID);
+            statement.setString(1, ticketId);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                involved.add(Arrays.toString(resultSet.getString("involved").split(", ")));
-                return involved;
+                String s = Arrays.toString(resultSet.getString("involved").split(", "));
+                if (s.equals("[]")) {
+                    return involved;
+                }else {
+                    involved.add(s);
+                    return involved;
+                }
             }
         } catch (SQLException e) {
             System.out.println("Could not get involved members: " + e);
@@ -86,35 +104,69 @@ public class TicketData {
         return involved;
     }
 
-    public void addInvolved(String ticketID) {
-        List<String> involved = getInvolved(ticketID);
-        final String[] value = {""};
-        involved.forEach(s -> {
-            value[0] = value[0] + ", " + s;
-        });
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "UPSERT INTO tickets(ticketID, involved) VALUES(?,?);"
+    public boolean addInvolved(String involved) {
+        if (getInvolved().contains(involved)) return false;
+
+        List<String> strings = getInvolved();
+        StringBuilder value = new StringBuilder();
+
+        if (strings.isEmpty()) {
+            value = new StringBuilder(involved);
+        }else {
+            for (String string : strings) {
+                value.append(string).append(", ").append(involved);
+            }
+        }
+
+        System.out.println(value);
+
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
-            statement.setString(1, ticketID);
-            statement.setString(2, value[0]);
+            statement.setString(1, ticketId);
+            statement.setString(2, value.toString());
+            statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Could not add involved member: " + e);
         }
+        return true;
     }
 
-    public void removeInvolved(String ticketID, String involved) {
-        final String[] strings = {""};
-        getInvolved(ticketID).forEach(s -> {
-            strings[0] = strings[0] + ", " + s;
-        });
-        String value = strings[0].replaceAll(involved + ", ", "");
-        try (Connection conn = connection; PreparedStatement statement = conn.prepareStatement(
-                "UPSERT INTO tickets(ticketID, involved) VALUES(?,?);"
+    public boolean removeInvolved(String involved) {
+        if (!getInvolved().contains(involved)) return false;
+        StringBuilder value = new StringBuilder();
+        List<String> strings = getInvolved();
+        strings.remove(involved);
+        for (int i = 0; i < strings.size(); i++) {
+            if (strings.size() - 1 == i) {
+                value.append(strings.get(i));
+            }else {
+                value.append(strings.get(i)).append(", ");
+            }
+        }
+
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
-            statement.setString(1, ticketID);
-            statement.setString(2, value);
+            statement.setString(1, ticketId);
+            statement.setString(2, value.toString());
+            statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println("Could not remove involved member: " + e);
         }
+        return true;
+    }
+
+    public List<String> getCurrentTickets() {
+        List<String> tickets = new ArrayList<>();
+        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+                "SELECT ticketID FROM tickets")){
+            ResultSet resultSet = statement.executeQuery();
+
+            while (resultSet.next()) tickets.add(String.valueOf(resultSet.getRow()));
+        } catch (SQLException e) {
+            System.out.println("Could not get current tickets: " + e);
+        }
+        return tickets;
     }
 }

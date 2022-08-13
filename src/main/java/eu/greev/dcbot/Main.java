@@ -34,7 +34,6 @@ public class Main extends ListenerAdapter {
         PropertyConfigurator.configure(log4jConfPath);
 
         Database database = new Database();
-
         database.createNewDatabase("SSSIT.db");
         database.createNewTable();
         Connection connection = database.connect();
@@ -69,11 +68,11 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("close", "Close this ticket")
                         .addOption(OptionType.STRING, "reason", "The reason the ticket was closed", false))
                 .addSubcommands(new SubcommandData("claim", "Claim this ticket"))
-
+                .addSubcommands(new SubcommandData("owner", "Set the new owner of the ticket")
+                        .addOption(OptionType.USER, "member", "The new owner"))
+                .addSubcommands(new SubcommandData("waiting", "Set the ticket in waiting mode"))
                 .addSubcommands(new SubcommandData("supporter", "Sets the new supporter")
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
-
-                //.addSubcommands(new SubcommandData("clear-config", "Clear the config for the TicketManager"))
         );
     }
 
