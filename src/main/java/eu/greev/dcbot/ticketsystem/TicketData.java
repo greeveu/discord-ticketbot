@@ -1,7 +1,6 @@
 package eu.greev.dcbot.ticketsystem;
 
-import eu.greev.dcbot.database.Database;
-
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,12 +11,14 @@ import java.util.List;
 
 public class TicketData {
     private final String ticketId;
+    private final DataSource dataSource;
 
-    public TicketData(String ticketId) {
+    public TicketData(String ticketId, DataSource dataSource) {
         this.ticketId = ticketId;
+        this.dataSource = dataSource;
 
         if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
-            try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+            try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                     "INSERT INTO tickets(ticketID, creator, supporter, involved) VALUES(?, '', '', '')"
             )) {
                 statement.setString(1, ticketId);
@@ -29,7 +30,7 @@ public class TicketData {
     }
 
     public void setSupporter(String supporter) {
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET supporter =? WHERE ticketID =?"
         )) {
             statement.setString(1, ticketId);
@@ -41,7 +42,7 @@ public class TicketData {
     }
 
     public void setCreator(String creator) {
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET creator = ? WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
@@ -53,7 +54,7 @@ public class TicketData {
     }
 
     public String getCreator() {
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT creator FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
@@ -68,7 +69,7 @@ public class TicketData {
     }
 
     public String getSupporter() {
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT supporter FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
@@ -84,7 +85,7 @@ public class TicketData {
 
     public List<String> getInvolved() {
         List<String> involved = new ArrayList<>();
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT involved FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
@@ -120,7 +121,7 @@ public class TicketData {
 
         System.out.println(value);
 
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
             statement.setString(1, ticketId);
@@ -145,7 +146,7 @@ public class TicketData {
             }
         }
 
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
             statement.setString(1, ticketId);
@@ -159,7 +160,7 @@ public class TicketData {
 
     public List<String> getCurrentTickets() {
         List<String> tickets = new ArrayList<>();
-        try (Connection conn = new Database().connect(); PreparedStatement statement = conn.prepareStatement(
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT ticketID FROM tickets")){
             ResultSet resultSet = statement.executeQuery();
 

@@ -1,6 +1,7 @@
 package eu.greev.dcbot;
 
-import eu.greev.dcbot.database.Database;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.utils.data.Data;
 import net.dv8tion.jda.api.JDA;
@@ -20,31 +21,32 @@ import org.apache.log4j.PropertyConfigurator;
 import org.jetbrains.annotations.NotNull;
 
 import javax.security.auth.login.LoginException;
-import java.io.IOException;
+import javax.sql.DataSource;
+import java.io.*;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main extends ListenerAdapter {
+    private static DataSource dataSource;
 
-    public static void main(String[] args) throws InterruptedException, LoginException, IOException {
+    public static void main(String[] args) throws InterruptedException, LoginException, IOException, SQLException {
         String log4jConfPath = "./src/main/resources/log4j.properties";
         PropertyConfigurator.configure(log4jConfPath);
 
-        Database database = new Database();
-        database.createNewDatabase("SSSIT.db");
-        database.createNewTable();
-        Connection connection = database.connect();
-
+        initDatasource();
 
         JDA jda;
         jda = JDABuilder.createLight(new Data().botToken, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_EMOJIS_AND_STICKERS, GatewayIntent.GUILD_MEMBERS)
                 .setActivity(Activity.listening(" ticket commands."))
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
-        jda.addEventListener(new Main(), new TicketListener(jda, connection));
+        jda.addEventListener(new Main(), new TicketListener(jda, dataSource));
         jda.awaitReady();
 
         List<CommandData> commands = new ArrayList<>();
@@ -84,6 +86,45 @@ public class Main extends ListenerAdapter {
                     .flatMap(v ->
                             event.getHook().editOriginalFormat("Pong: %d ms", System.currentTimeMillis() - time)
                     ).queue();
+        }
+    }
+
+    public static void initDatasource() throws SQLException, IOException {
+        new File("./GreevTickets").mkdirs();
+        Data data = new Data();
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
+        HikariDataSource dataSource = new HikariDataSource(config);
+        Main.dataSource = dataSource;
+        testDataSource(dataSource);
+        initDb();
+    }
+
+    private static void initDb() throws SQLException, IOException {
+        String setup;
+        try (InputStream in = Main.class.getClassLoader().getResourceAsStream("dbsetup.sql")) {
+            setup = new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n"));
+        } catch (IOException e) {
+            System.err.println("Could not read db setup file.");
+            e.printStackTrace();
+            throw e;
+        }
+        String[] queries = setup.split(";");
+        for (String query : queries) {
+            if (query.isBlank()) continue;
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.execute();
+            }
+        }
+        System.out.println("Database setup complete.");
+    }
+
+    private static void testDataSource(DataSource dataSource) throws SQLException {
+        try (Connection conn = dataSource.getConnection()) {
+            if (!conn.isValid(1000)) {
+                throw new SQLException("Could not establish database connection.");
+            }
         }
     }
 }
