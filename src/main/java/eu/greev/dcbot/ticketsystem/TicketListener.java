@@ -23,7 +23,6 @@ import javax.sql.DataSource;
 import java.awt.*;
 
 public class TicketListener extends ListenerAdapter {
-    private final long serverID = new Data().testID;
     private final Role staff;
     private final DataSource dataSource;
     private final JDA jda;
@@ -31,6 +30,7 @@ public class TicketListener extends ListenerAdapter {
     public TicketListener(JDA jda, DataSource dataSource) {
         this.dataSource = dataSource;
         this.jda = jda;
+        long serverID = new Data().testID;
         staff = jda.getGuildById(serverID).getRoleById(new Data().teamID);
     }
 
@@ -76,49 +76,47 @@ public class TicketListener extends ListenerAdapter {
                 }
             }
             case "ticket-create-pardon" -> {
-                ticket = new Ticket(event.getUser(), jda, dataSource);
-                if (ticket.createNewTicket()) {
-                    ticket.setTopic("Pardon request");
-                    EmbedBuilder builder = new EmbedBuilder();
-                    builder.setTitle("Title created");
-                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
-                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
+                        .setPlaceholder("Your Minecraft name")
+                        .setMinLength(2)
+                        .setMaxLength(12)
+                        .build();
+                TextInput info = TextInput.create("info", "Description", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Give us more information about your problem")
+                        .setMinLength(5)
+                        .build();
 
-                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                }else {
-                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
-                }
+                Modal modal = Modal.create("pardon", "Give us more information!")
+                        .addActionRows(ActionRow.of(member), ActionRow.of(info))
+                        .build();
+                event.replyModal(modal).queue();
             }
             case "ticket-create-report" -> {
-                ticket = new Ticket(event.getUser(), jda, dataSource);
-                if (ticket.createNewTicket()) {
-                    ticket.setTopic("Report");
-                    EmbedBuilder builder = new EmbedBuilder();
-                    builder.setTitle("Title created");
-                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
-                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
-
-                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                }else {
-                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
-                }
+                TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
+                        .setPlaceholder("Your Minecraft name")
+                        .setMinLength(2)
+                        .setMaxLength(12)
+                        .build();
+                TextInput hacker = TextInput.create("hacker", "Name", TextInputStyle.SHORT)
+                        .setPlaceholder("Who do you want to report")
+                        .setMinLength(2)
+                        .setMaxLength(12)
+                        .build();
+                Modal modal = Modal.create("report", "Give us more information!")
+                        .addActionRows(ActionRow.of(member), ActionRow.of(hacker))
+                        .build();
+                event.replyModal(modal).queue();
             }
             case "ticket-create-complain" -> {
-                ticket = new Ticket(event.getUser(), jda, dataSource);
-                if (ticket.createNewTicket()) {
-                    ticket.setTopic("Complain");
-                    EmbedBuilder builder = new EmbedBuilder();
-                    builder.setTitle("Title created");
-                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
-                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                TextInput complain = TextInput.create("complain", "Complain", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Give us more information about your problem")
+                        .setMinLength(5)
+                        .build();
 
-                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                }else {
-                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
-                }
+                Modal modal = Modal.create("complain", "Give us more information!")
+                        .addActionRows(ActionRow.of(complain))
+                        .build();
+                event.replyModal(modal).queue();
             }
             case "ticket-create-custom" -> {
                 TextInput reason = TextInput.create("topic", "Topic", TextInputStyle.SHORT)
@@ -126,7 +124,7 @@ public class TicketListener extends ListenerAdapter {
                         .setMinLength(1)
                         .setMaxLength(50)
                         .build();
-                Modal modal = Modal.create("topic", "Create ticket with custom topic")
+                Modal modal = Modal.create("custom", "Create ticket with custom topic")
                         .addActionRows(ActionRow.of(reason))
                         .build();
                 event.replyModal(modal).queue();
@@ -138,7 +136,72 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
+        Ticket ticket = new Ticket(event.getUser(), jda, dataSource);;
+        switch (event.getModalId()) {
+            case "custom" -> {
+                String topic = event.getValue("topic").getAsString();
+                if (ticket.createNewTicket("")) {
+                    ticket.setTopic(topic);
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setTitle("Ticket created");
+                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
 
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                }else {
+                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
+                }
+            }
+            case "complain" -> {
+                String complain = event.getValue("complain").getAsString();
+                if (ticket.createNewTicket(complain)) {
+                    ticket.setTopic("Complain");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setTitle("Ticket created");
+                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                }else {
+                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
+                }
+            }
+            case "report" -> {
+                String name = event.getValue("member").getAsString();
+                String report = event.getValue("hacker").getAsString();
+                if (ticket.createNewTicket("")) {
+                    ticket.setTopic(name + " reports " + report);
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setTitle("Ticket created");
+                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                }else {
+                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
+                }
+            }
+            case "pardon" -> {
+                String name = event.getValue("member").getAsString();
+                String info = event.getValue("info").getAsString();
+
+                if (ticket.createNewTicket(info)) {
+                    ticket.setTopic(name + " wants pardon");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setTitle("Ticket created");
+                    builder.setAuthor(event.getUser().getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                }else {
+                    event.reply("There already is an opened ticket for you. Please use this instead first or close it -> " + ticket.getTicketChannel().getAsMention()).setEphemeral(true).queue();
+                }
+            }
+        }
     }
 
     @Override
@@ -175,9 +238,9 @@ public class TicketListener extends ListenerAdapter {
                 }
                 case "create" -> {
                     Ticket ticket = new Ticket(event.getUser(), jda, dataSource);
-                    if (ticket.createNewTicket()) {
+                    if (ticket.createNewTicket("")) {
                         EmbedBuilder builder = new EmbedBuilder();
-                        builder.setTitle("Title created");
+                        builder.setTitle("Ticket created");
                         builder.setAuthor(member.getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
                         builder.addField("", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
                         builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");

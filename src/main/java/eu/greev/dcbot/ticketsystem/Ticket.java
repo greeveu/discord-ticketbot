@@ -53,7 +53,7 @@ public class Ticket {
         }
     }
 
-    protected boolean createNewTicket() {
+    protected boolean createNewTicket(String info) {
         Member owner = jda.getGuildById(serverID).getMember(this.owner);
 
         for (TextChannel textChannel : jda.getGuildById(serverID).getTextChannels()) {
@@ -83,8 +83,8 @@ public class Ticket {
 
                     EmbedBuilder builder1 = new EmbedBuilder();
                     builder1.setColor(new Color(63,226,69,255));
-                    builder1.setDescription("If you opened this ticket accidentally, you have now the change to close it again for 1 minute! Just write 'nevermind'\nThis message will delete itself after this minute");
                     builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                    builder1.setDescription("If you opened this ticket accidentally, you have now the change to close it again for 1 minute! Just write 'nevermind'\nThis message will delete itself after this minute");
 
                     success.sendMessage(owner.getAsMention() + " has created a new ticket"
                             + "https://cdn.discordapp.com/attachments/1002631949275365488/1002631954727964772/how-can-i-help-2.gif").queueAfter(10, TimeUnit.MILLISECONDS);
@@ -117,6 +117,15 @@ public class Ticket {
                             }
                         }
                     });
+
+                    if (!info.equals("")) {
+                        EmbedBuilder infoBuilder = new EmbedBuilder();
+                        infoBuilder.setColor(new Color(63,226,69,255));
+                        infoBuilder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                        infoBuilder.setTitle("**Extra**");
+                        infoBuilder.addField("Given Information", info, false);
+                        success.sendMessageEmbeds(infoBuilder.build()).queue();
+                    }
                 });
         new TicketData((ticketData.getCurrentTickets().size() + 1) + "", dataSource);
         return true;
