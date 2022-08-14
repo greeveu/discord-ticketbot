@@ -28,9 +28,11 @@ public class Ticket {
     private final long serverID = new Data().testID;
     private final long staffID = new Data().teamID;
     private TextChannel ticketChannel;
+    private final DataSource dataSource;
     private boolean closeableByCreator = false;
 
     protected Ticket(User owner, JDA jda, DataSource dataSource) {
+        this.dataSource = dataSource;
         this.owner = owner;
         this.jda = jda;
         id = "";
@@ -38,20 +40,30 @@ public class Ticket {
     }
 
     protected Ticket(long ticketChannelId, JDA jda, DataSource dataSource) {
+        this.dataSource = dataSource;
         this.jda = jda;
         id = jda.getTextChannelById(ticketChannelId).getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "");
         ticketData = new TicketData(id, dataSource);
+        for (Member member : jda.getGuildById(serverID).loadMembers().get()) {
+            if (member.getId().equals(ticketData.getOwner())) {
+                owner = member.getUser();
+            }else if (member.getId().equals(ticketData.getSupporter())) {
+                supporter = member.getUser();
+            }
+        }
     }
 
-    //under development
     protected boolean createNewTicket() {
         Member owner = jda.getGuildById(serverID).getMember(this.owner);
-        if (!jda.getGuildById(serverID).getTextChannelsByName(owner.getEffectiveName().toLowerCase() + "ticket", true).isEmpty()) {
-            String ticketMention = jda.getGuildById(serverID).getTextChannelsByName(owner.getEffectiveName().toLowerCase() + "-ticket", true).get(0).getAsMention();
-            return false;
-        } //TODO -> change if statement
 
-        jda.getGuildById(serverID).createTextChannel("ticket" + (ticketData.getCurrentTickets().size() + 1) , jda.getCategoryById(new Data().supportCategory))
+        for (TextChannel textChannel : jda.getGuildById(serverID).getTextChannels()) {
+            if (textChannel.getName().contains("ticket-") &&
+                    new TicketData(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", ""), dataSource).getOwner().equals(owner.getId())) {
+                return false;
+            }
+        }
+
+        jda.getGuildById(serverID).createTextChannel("ticket" + (ticketData.getCurrentTickets().size() + 1), jda.getCategoryById(new Data().supportCategory))
                 .addRolePermissionOverride(jda.getGuildById(serverID).getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(staffID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
@@ -81,6 +93,7 @@ public class Ticket {
                                     Button.danger("ticket-close", "Close"))
                             .queueAfter(15, TimeUnit.MILLISECONDS, s -> {
                                 //file.set("tickets." + finalTicketChannel.getId() + ".ticketEmbedId", s.getId());
+                                //TODO -> save ticketEmbedId to edit it later
                             });
                     success.sendMessageEmbeds(builder1.build()).queueAfter(20, TimeUnit.MILLISECONDS, s -> {
                         closeableByCreator = true;
@@ -98,7 +111,6 @@ public class Ticket {
                                 }, TimeUnit.MILLISECONDS.toMinutes(1), TimeUnit.MILLISECONDS.toSeconds(1));
                                 a = false;
                             }
-
                             if (success.getHistory().getMessageById(success.getLatestMessageId()).getContentRaw().equals("nevermind")) {
                                 closeTicket(true);
                                 closeableByCreator = false;
@@ -106,10 +118,11 @@ public class Ticket {
                         }
                     });
                 });
+        new TicketData((ticketData.getCurrentTickets().size() + 1) + "", dataSource);
         return true;
     }
 
-    protected boolean closeTicket(boolean wasAccident) {
+    protected void closeTicket(boolean wasAccident) {
         if (wasAccident) {
             ticketChannel.delete().queue();
         }else {
@@ -133,22 +146,42 @@ public class Ticket {
             });
             ticketChannel.delete().queue();
         }
-
-        return false;
     }
 
     protected boolean claim(User supporter) {
-        this.supporter = supporter;
-        ticketData.setSupporter(supporter.getId());
+        if (supporter != owner) {
+            this.supporter = supporter;
+            ticketData.setSupporter(supporter.getId());
+            ticketChannel.getManager().setName("✓-ticket-" + id).queue();
 
-        return true;
-    }
-
-    protected boolean setWaiting() {
-        if (ticketChannel.getName().contains("\uD83D\uDD50")) {
+            EmbedBuilder builder = new EmbedBuilder();
+            builder.setColor(new Color(63,226,69,255));
+            builder.setDescription("Hello there, " + owner.getAsMention() + "!" + """
+                            A member of staff will assist you shortly.
+                            In the mean time, please describe your issue in as much detail as possible! :)
+                            """);
+            builder.addField("Topic", topic, false);
+            builder.setAuthor(owner.getName(), owner.getEffectiveAvatarUrl());
+            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+            ticketChannel.editMessageEmbedsById("", builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+            return true;
+        }else {
             return false;
         }
-        ticketChannel.getManager().setName("\uD83D\uDD50-ticket-" + id).queue();
+    }
+
+    protected boolean toggleWaiting(boolean waiting) {
+        if (waiting) {
+            if (ticketChannel.getName().contains("\uD83D\uDD50")) {
+                return false;
+            }
+            ticketChannel.getManager().setName("\uD83D\uDD50-ticket-" + id).queue();
+        }else {
+            if (!ticketChannel.getName().contains("\uD83D\uDD50")) {
+                return false;
+            }
+            ticketChannel.getManager().setName("✓-ticket-" + id).queue();
+        }
         return true;
     }
 
