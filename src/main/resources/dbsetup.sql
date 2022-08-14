@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS tickets
 (
 	ticketID	VARCHAR                     NOT NULL,
 
-	creator 	VARCHAR(20)                 NOT NULL,
+	owner    	VARCHAR(20)                 NOT NULL,
 
 	supporter	VARCHAR(20) DEFAULT ""      NOT NULL,
 

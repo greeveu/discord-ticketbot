@@ -19,7 +19,7 @@ public class TicketData {
 
         if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
             try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                    "INSERT INTO tickets(ticketID, creator, supporter, involved) VALUES(?, '', '', '')"
+                    "INSERT INTO tickets(ticketID, owner, supporter, involved) VALUES(?, '', '', '')"
             )) {
                 statement.setString(1, ticketId);
                 statement.execute();
@@ -41,29 +41,29 @@ public class TicketData {
         }
     }
 
-    public void setCreator(String creator) {
+    public void setOwner(String owner) {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                "UPDATE tickets SET creator = ? WHERE ticketID = ?"
+                "UPDATE tickets SET owner = ? WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
-            statement.setString(2, creator);
+            statement.setString(2, owner);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println("Could not set creator: " + e);
+            System.out.println("Could not set owner: " + e);
         }
     }
 
-    public String getCreator() {
+    public String getOwner() {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                "SELECT creator FROM tickets WHERE ticketID = ?"
+                "SELECT owner FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return resultSet.getString("creator");
+                return resultSet.getString("owner");
             }
         } catch (SQLException e) {
-            System.out.println("Could not get creator: " + e);
+            System.out.println("Could not get owner: " + e);
         }
         return "";
     }
@@ -92,12 +92,10 @@ public class TicketData {
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
                 String s = Arrays.toString(resultSet.getString("involved").split(", "));
-                if (s.equals("[]")) {
-                    return involved;
-                }else {
+                if (!s.equals("[]")) {
                     involved.add(s);
-                    return involved;
                 }
+                return involved;
             }
         } catch (SQLException e) {
             System.out.println("Could not get involved members: " + e);
@@ -105,9 +103,7 @@ public class TicketData {
         return involved;
     }
 
-    public boolean addInvolved(String involved) {
-        if (getInvolved().contains(involved)) return false;
-
+    public void addInvolved(String involved) {
         List<String> strings = getInvolved();
         StringBuilder value = new StringBuilder();
 
@@ -130,11 +126,9 @@ public class TicketData {
         } catch (SQLException e) {
             System.out.println("Could not add involved member: " + e);
         }
-        return true;
     }
 
-    public boolean removeInvolved(String involved) {
-        if (!getInvolved().contains(involved)) return false;
+    public void removeInvolved(String involved) {
         StringBuilder value = new StringBuilder();
         List<String> strings = getInvolved();
         strings.remove(involved);
@@ -155,7 +149,6 @@ public class TicketData {
         } catch (SQLException e) {
             System.out.println("Could not remove involved member: " + e);
         }
-        return true;
     }
 
     public List<String> getCurrentTickets() {

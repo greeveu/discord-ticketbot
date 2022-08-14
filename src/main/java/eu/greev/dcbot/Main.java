@@ -42,7 +42,7 @@ public class Main extends ListenerAdapter {
         initDatasource();
 
         JDA jda;
-        jda = JDABuilder.createLight(new Data().botToken, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_EMOJIS_AND_STICKERS, GatewayIntent.GUILD_MEMBERS)
+        jda = JDABuilder.createLight(new Data().botToken, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_EMOJIS_AND_STICKERS, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 .setActivity(Activity.listening(" ticket commands."))
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
@@ -75,6 +75,8 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("waiting", "Set the ticket in waiting mode"))
                 .addSubcommands(new SubcommandData("supporter", "Sets the new supporter")
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
+                .addSubcommands(new SubcommandData("topic", "Set the topic of the ticket")
+                        .addOption(OptionType.STRING, "topic", "The new topic", true))
         );
     }
 
