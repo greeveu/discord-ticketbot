@@ -4,12 +4,13 @@ import eu.greev.dcbot.utils.data.Data;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Modal;
@@ -21,19 +22,22 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 import java.awt.*;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class TicketListener extends ListenerAdapter {
     private final Role staff;
     private final DataSource dataSource;
     private final JDA jda;
+    private final Data data = new Data();
 
     public TicketListener(JDA jda, DataSource dataSource) {
         this.dataSource = dataSource;
         this.jda = jda;
-        long serverID = new Data().testID;
-        staff = jda.getGuildById(serverID).getRoleById(new Data().teamID);
+        String serverID = data.serverID;
+        staff = jda.getGuildById(serverID).getRoleById(data.teamID);
     }
-
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
@@ -131,7 +135,6 @@ public class TicketListener extends ListenerAdapter {
             }
             case "ticket-confirm" -> new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource).closeTicket(false);
         }
-
     }
 
     @Override
@@ -211,21 +214,16 @@ public class TicketListener extends ListenerAdapter {
             switch (event.getSubcommandName()) {
                 case "setup" -> {
                     if (member.getPermissions().contains(Permission.ADMINISTRATOR)) {
-                        if (jda.getTextChannelById(new Data().baseChannel).getHistory() == null) {
-                            jda.getTextChannelById(new Data().baseChannel).getHistory().getRetrievedHistory().forEach(message -> {
-                                message.delete().queue();
-                            });
-                        }
                         EmbedBuilder builder = new EmbedBuilder();
                         builder.setFooter("Powered by Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
                         builder.addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?
-                        Just click the button below or use `/ticket create` somewhere else.
+                        Just click the one of the buttons below or use `/ticket create` somewhere else.
                         We will try to handle your ticket as soon as possible.
                         """, false));
                         builder.setColor(new Color(63,226,69,255));
 
-                        jda.getTextChannelById(new Data().baseChannel).sendMessageEmbeds(builder.build())
+                        jda.getTextChannelById(data.baseChannel).sendMessageEmbeds(builder.build())
                                 .setActionRow(
                                         Button.primary("ticket-create-pardon", "Pardon"),
                                         Button.primary("ticket-create-report", "Report"),
@@ -351,7 +349,8 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (ticket.toggleWaiting(true)) {
+                            if (ticket.isWaiting()) {
+                                ticket.toggleWaiting(true);
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setAuthor(member.getEffectiveName(), member.getEffectiveAvatarUrl());
                                 builder.setDescription("Waiting for response.");
@@ -381,6 +380,103 @@ public class TicketListener extends ListenerAdapter {
                     }
                 }
             }
+        }
+    }
+
+    /*
+    *Methods to write the transcript
+    */
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+        if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-")) {
+            //Handling Waiting stage
+            Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
+            if (ticket.isWaiting()) {
+                ticket.toggleWaiting(false);
+            }
+
+            //Transcript
+            TextChannel textChannel = event.getChannel().asTextChannel();
+            String log = event.getMessageId() + "} "
+                    + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
+                    + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
+                    + ":> " + event.getMessage().getContentDisplay();
+
+            File transcript = ticket.getTranscript();
+
+            try {
+                try {
+                    new File("./GreevTickets/transcripts").mkdirs();
+                    if (transcript.createNewFile()) {
+                        BufferedWriter fw = new BufferedWriter(new FileWriter(transcript, true));
+                        fw.write("Transcript of ticket#");
+                        fw.newLine();
+                        fw.close();
+                    }
+                } catch (IOException e) {
+                    System.out.println("Could not create transcript");
+                }
+
+                BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
+                writer.write(log);
+                writer.newLine();
+                writer.close();
+            } catch (IOException e) {
+                System.out.println("Could not write in file: " + e);
+            }
+        }
+    }
+
+    @Override
+    public void onMessageDelete(@NotNull MessageDeleteEvent event) {
+        if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-")) {
+            Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
+
+            File transcript = ticket.getTranscript();
+
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(transcript));
+
+                for (String line : reader.lines().toList()) {
+                    if (!line.contains("}")) continue;
+                    String msgID = line.split("}")[0];
+                    try {
+                        event.getChannel().retrieveMessageById(msgID).complete();
+                    } catch (Exception e) {
+                        new File("./GreevTickets/transcripts").mkdirs();
+                        File temp = new File("./GreevTickets/transcripts/" + ticket.getID() + ".temp");
+                        temp.createNewFile();
+
+                        PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(temp)));
+                        BufferedReader br = new BufferedReader(new FileReader(transcript));
+
+                        String s;
+                        while ((s = br.readLine()) != null) {
+                            if (s.contains(msgID)) {
+                                String message = line.split("> ")[1];
+                                s = s.replace(message, "~~" + message + "~~");
+                            }
+                            writer.println(s);
+                        }
+                        writer.close();
+                        br.close();
+                    }
+                }
+                reader.close();
+                File realName = new File("./GreevTickets/transcripts/123.txt");
+                realName.delete();
+                new File("./GreevTickets/transcripts/" + ticket.getID() + ".temp").renameTo(realName);
+            } catch (IOException e) {
+                System.out.println("Could not read file: ");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
+        if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-")) {
+
         }
     }
 }

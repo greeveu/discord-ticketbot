@@ -24,7 +24,7 @@ public class TicketData {
                 statement.setString(1, ticketId);
                 statement.execute();
             } catch (SQLException e) {
-                System.out.println("Could not set ticketID: " + e);
+                System.out.println(ticketId + ": Could not set ticketID: " + e);
             }
         }
     }
@@ -37,7 +37,7 @@ public class TicketData {
             statement.setString(2, supporter);
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Could not set supporter: " + e);
+            System.out.println(ticketId + ": Could not set supporter: " + e);
         }
     }
 
@@ -49,7 +49,7 @@ public class TicketData {
             statement.setString(2, owner);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println("Could not set owner: " + e);
+            System.out.println(ticketId + ": Could not set owner: " + e);
         }
     }
 
@@ -63,7 +63,7 @@ public class TicketData {
                 return resultSet.getString("owner");
             }
         } catch (SQLException e) {
-            System.out.println("Could not get owner: " + e);
+            System.out.println(ticketId + ": Could not get owner: " + e);
         }
         return "";
     }
@@ -78,7 +78,7 @@ public class TicketData {
                 return resultSet.getString("supporter");
             }
         } catch (SQLException e) {
-            System.out.println("Could not get supporter: " + e);
+            System.out.println(ticketId + ": Could not get supporter: " + e);
         }
         return "";
     }
@@ -98,7 +98,7 @@ public class TicketData {
                 return involved;
             }
         } catch (SQLException e) {
-            System.out.println("Could not get involved members: " + e);
+            System.out.println(ticketId + ": Could not get involved members: " + e);
         }
         return involved;
     }
@@ -124,7 +124,7 @@ public class TicketData {
             statement.setString(2, value.toString());
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Could not add involved member: " + e);
+            System.out.println(ticketId + ": Could not add involved member: " + e);
         }
     }
 
@@ -147,7 +147,7 @@ public class TicketData {
             statement.setString(2, value.toString());
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Could not remove involved member: " + e);
+            System.out.println(ticketId + ": Could not remove involved member: " + e);
         }
     }
 
@@ -159,8 +159,19 @@ public class TicketData {
 
             while (resultSet.next()) tickets.add(String.valueOf(resultSet.getRow()));
         } catch (SQLException e) {
-            System.out.println("Could not get current tickets: " + e);
+            System.out.println(ticketId + ": Could not get current tickets: " + e);
         }
         return tickets;
+    }
+
+    public void deleteEntry() {
+        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+                "DELETE FROM tickets WHERE ticketID=?"
+        )){
+            statement.setString(1, ticketId);
+            statement.execute();
+        } catch (SQLException e) {
+            System.out.println(ticketId + ": Could not delete entry: " + e);
+        }
     }
 }

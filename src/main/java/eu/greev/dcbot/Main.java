@@ -15,6 +15,8 @@ import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.PropertyConfigurator;
@@ -42,17 +44,20 @@ public class Main extends ListenerAdapter {
         initDatasource();
 
         JDA jda;
-        jda = JDABuilder.createLight(new Data().botToken, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_EMOJIS_AND_STICKERS, GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+        jda = JDABuilder.create(new Data().botToken, List.of(GatewayIntent.values()))
                 .setActivity(Activity.listening(" ticket commands."))
+                .setEnabledIntents(List.of(GatewayIntent.values()))
+                .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
-        jda.addEventListener(new Main(), new TicketListener(jda, dataSource));
         jda.awaitReady();
+        jda.addEventListener(new Main(), new TicketListener(jda, dataSource));
+
 
         List<CommandData> commands = new ArrayList<>();
         createCommands(commands);
         jda.upsertCommand(Commands.slash("ping", "Returns the ping of the bot")).queue();
-        jda.getGuildById(new Data().testID).updateCommands().addCommands(commands).queue();
+        jda.getGuildById(new Data().serverID).updateCommands().addCommands(commands).queue();
 
         String day = new SimpleDateFormat("dd-MM-yy hh:mm aa ").format(new Date(System.currentTimeMillis()));
         LogManager.getLogger(Main.class).log(Level.INFO, "Started: " + day);

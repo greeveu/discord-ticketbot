@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import javax.sql.DataSource;
 import java.awt.*;
+import java.io.*;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -24,8 +25,9 @@ public class Ticket {
     private String topic = "No topic given";
     private final String id;
     private final TicketData ticketData;
+    private File transcript;
     private final JDA jda;
-    private final long serverID = new Data().testID;
+    private final String serverID = new Data().serverID;
     private final long staffID = new Data().teamID;
     private TextChannel ticketChannel;
     private final DataSource dataSource;
@@ -44,13 +46,6 @@ public class Ticket {
         this.jda = jda;
         id = jda.getTextChannelById(ticketChannelId).getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "");
         ticketData = new TicketData(id, dataSource);
-        for (Member member : jda.getGuildById(serverID).loadMembers().get()) {
-            if (member.getId().equals(ticketData.getOwner())) {
-                owner = member.getUser();
-            }else if (member.getId().equals(ticketData.getSupporter())) {
-                supporter = member.getUser();
-            }
-        }
     }
 
     protected boolean createNewTicket(String info) {
@@ -70,8 +65,20 @@ public class Ticket {
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .queueAfter(500, TimeUnit.MILLISECONDS, success -> {
                     this.ticketChannel = success;
+                    TicketData ticketData = new TicketData((this.ticketData.getCurrentTickets().size() + 1) + "", dataSource);
+                    ticketData.setOwner(owner.getId());
+
+                    try {
+                        new File("./GreevTickets/transcripts").mkdirs();
+                        File transcript = new File("./GreevTickets/transcripts/123.txt");
+                        transcript.createNewFile();
+                        this.transcript = transcript;
+                    } catch (IOException e) {
+                        System.out.println("Could not create transcript");
+                    }
 
                     EmbedBuilder builder = new EmbedBuilder();
+                    EmbedBuilder builder1 = new EmbedBuilder();
                     builder.setColor(new Color(63,226,69,255));
                     builder.setDescription("Hello there, " + owner.getAsMention() + "!" + """
                             A member of staff will assist you shortly.
@@ -81,7 +88,6 @@ public class Ticket {
                     builder.setAuthor(owner.getEffectiveName(), owner.getEffectiveAvatarUrl());
                     builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
 
-                    EmbedBuilder builder1 = new EmbedBuilder();
                     builder1.setColor(new Color(63,226,69,255));
                     builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
                     builder1.setDescription("If you opened this ticket accidentally, you have now the change to close it again for 1 minute! Just write 'nevermind'\nThis message will delete itself after this minute");
@@ -92,8 +98,18 @@ public class Ticket {
                             .setActionRow(Button.primary("ticket-claim", "Claim"),
                                     Button.danger("ticket-close", "Close"))
                             .queueAfter(15, TimeUnit.MILLISECONDS, s -> {
-                                //file.set("tickets." + finalTicketChannel.getId() + ".ticketEmbedId", s.getId());
-                                //TODO -> save ticketEmbedId to edit it later
+                                try {
+                                    new File("./GreevTickets/transcripts").mkdirs();
+                                    File file = new File("./GreevTickets/transcripts/123.txt");
+                                    file.createNewFile();
+
+                                    BufferedWriter fw = new BufferedWriter(new FileWriter(file, true));
+                                    fw.write(success.getId());
+                                    fw.newLine();
+                                    fw.close();
+                                } catch (IOException e) {
+                                    System.out.println("Could not create transcript");
+                                }
                             });
                     success.sendMessageEmbeds(builder1.build()).queueAfter(20, TimeUnit.MILLISECONDS, s -> {
                         closeableByCreator = true;
@@ -113,6 +129,7 @@ public class Ticket {
                             }
                             if (success.getHistory().getMessageById(success.getLatestMessageId()).getContentRaw().equals("nevermind")) {
                                 closeTicket(true);
+                                ticketData.deleteEntry();
                                 closeableByCreator = false;
                             }
                         }
@@ -127,11 +144,16 @@ public class Ticket {
                         success.sendMessageEmbeds(infoBuilder.build()).queue();
                     }
                 });
-        new TicketData((ticketData.getCurrentTickets().size() + 1) + "", dataSource);
         return true;
     }
 
     protected void closeTicket(boolean wasAccident) {
+        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+            supporter = s;
+        });
+        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
+            owner = s;
+        });
         if (wasAccident) {
             ticketChannel.delete().queue();
         }else {
@@ -158,6 +180,13 @@ public class Ticket {
     }
 
     protected boolean claim(User supporter) {
+        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+            this.supporter = s;
+        });
+        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
+            owner = s;
+        });
+
         if (supporter != owner) {
             this.supporter = supporter;
             ticketData.setSupporter(supporter.getId());
@@ -172,26 +201,24 @@ public class Ticket {
             builder.addField("Topic", topic, false);
             builder.setAuthor(owner.getName(), owner.getEffectiveAvatarUrl());
             builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
-            ticketChannel.editMessageEmbedsById("", builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+            try {
+                BufferedReader reader = new BufferedReader(new FileReader(transcript));
+                ticketChannel.editMessageEmbedsById(reader.lines().toList().get(0), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+            } catch (FileNotFoundException e) {
+                System.out.println("Could not get Embed ID from transcript because: " + e);
+            }
             return true;
         }else {
             return false;
         }
     }
 
-    protected boolean toggleWaiting(boolean waiting) {
+    protected void toggleWaiting(boolean waiting) {
         if (waiting) {
-            if (ticketChannel.getName().contains("\uD83D\uDD50")) {
-                return false;
-            }
             ticketChannel.getManager().setName("\uD83D\uDD50-ticket-" + id).queue();
         }else {
-            if (!ticketChannel.getName().contains("\uD83D\uDD50")) {
-                return false;
-            }
             ticketChannel.getManager().setName("✓-ticket-" + id).queue();
         }
-        return true;
     }
 
     protected boolean isWaiting() {
@@ -223,6 +250,12 @@ public class Ticket {
     }
 
     protected boolean setOwner(User owner) {
+        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+            supporter = s;
+        });
+        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
+            this.owner = s;
+        });
         if (this.owner.equals(owner)) {
             return false;
         } else {
@@ -238,6 +271,12 @@ public class Ticket {
     }
 
     protected boolean setSupporter(User supporter) {
+        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+            this.supporter = s;
+        });
+        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
+            owner = s;
+        });
         if (((Member) supporter).getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID)) && this.supporter != supporter) {
             this.supporter = supporter;
             ticketData.setSupporter(supporter.getId());
@@ -249,12 +288,22 @@ public class Ticket {
     }
 
     protected void setTopic(String topic) {
+        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+            supporter = s;
+        });
+        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
+            owner = s;
+        });
         this.topic = topic;
         if (supporter != null) {
             getTicketChannel().getManager().setTopic(owner.getAsMention() + " | " + topic + " | " + supporter.getAsMention()).queue();
         }else {
             getTicketChannel().getManager().setTopic(owner.getAsMention() + " | " + topic).queue();
         }
+    }
+
+    protected File getTranscript() {
+        return transcript;
     }
 
     protected String getID() {
