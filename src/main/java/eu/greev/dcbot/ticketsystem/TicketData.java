@@ -13,6 +13,7 @@ public class TicketData {
     private final String ticketId;
     private final DataSource dataSource;
 
+    //TODO -> fix SQL statements, reason: keine ahnung
     public TicketData(String ticketId, DataSource dataSource) {
         this.ticketId = ticketId;
         this.dataSource = dataSource;

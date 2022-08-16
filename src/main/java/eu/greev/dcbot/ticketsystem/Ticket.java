@@ -302,6 +302,10 @@ public class Ticket {
         }
     }
 
+    protected boolean hasAccess(Member member) {
+        return member.getUser().equals(supporter) || member.getUser().equals(owner) || member.getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID));
+    }
+
     protected File getTranscript() {
         return transcript;
     }
