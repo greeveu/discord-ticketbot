@@ -25,6 +25,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.security.auth.login.LoginException;
 import javax.sql.DataSource;
 import java.io.*;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -32,14 +33,20 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class Main extends ListenerAdapter {
     private static DataSource dataSource;
 
     public static void main(String[] args) throws InterruptedException, LoginException, IOException, SQLException {
-        String log4jConfPath = "./src/main/resources/log4j.properties";
-        PropertyConfigurator.configure(log4jConfPath);
+        Properties properties = new Properties();
+        properties.setProperty("log4j.rootLogger", "INFO, stdout");
+        properties.setProperty("log4j.appender.stdout", "org.apache.log4j.ConsoleAppender");
+        properties.setProperty("log4j.appender.stdout.Target", "System.out");
+        properties.setProperty("log4j.appender.stdout.layout", "org.apache.log4j.PatternLayout");
+        properties.setProperty("log4j.appender.stdout.layout.ConversionPattern", "%d{yy/MM/dd HH:mm:ss} %p %c{2}: %m%n");
+        PropertyConfigurator.configure(properties);
 
         initDatasource();
 
@@ -52,7 +59,6 @@ public class Main extends ListenerAdapter {
                 .build();
         jda.awaitReady();
         jda.addEventListener(new Main(), new TicketListener(jda, dataSource));
-
 
         List<CommandData> commands = new ArrayList<>();
         createCommands(commands);
@@ -104,7 +110,7 @@ public class Main extends ListenerAdapter {
         HikariDataSource dataSource = new HikariDataSource(config);
         Main.dataSource = dataSource;
         testDataSource(dataSource);
-        initDb();
+        if (!new File("./GreevTickets/tickets").exists()) initDb();
     }
 
     private static void initDb() throws SQLException, IOException {
