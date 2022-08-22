@@ -25,7 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.security.auth.login.LoginException;
 import javax.sql.DataSource;
 import java.io.*;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -104,7 +103,6 @@ public class Main extends ListenerAdapter {
 
     public static void initDatasource() throws SQLException, IOException {
         new File("./GreevTickets").mkdirs();
-        Data data = new Data();
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
         HikariDataSource dataSource = new HikariDataSource(config);

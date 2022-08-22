@@ -13,30 +13,31 @@ public class TicketData {
     private final String ticketId;
     private final DataSource dataSource;
 
-    //TODO -> fix SQL statements, reason: keine ahnung
     public TicketData(String ticketId, DataSource dataSource) {
         this.ticketId = ticketId;
         this.dataSource = dataSource;
 
-        if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
-            try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                    "INSERT INTO tickets(ticketID, owner, supporter, involved) VALUES(?, '', '', '')"
-            )) {
-                statement.setString(1, ticketId);
-                statement.execute();
-            } catch (SQLException e) {
-                System.out.println(ticketId + ": Could not set ticketID: " + e);
+        if (!getOwner().equals("")) {
+            if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
+                try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+                        "INSERT INTO tickets(ticketID, owner, supporter, involved) VALUES(?, '', '', '')"
+                )) {
+                    statement.setString(1, ticketId);
+                    statement.execute();
+                } catch (SQLException e) {
+                    System.out.println(ticketId + ": Could not set ticketID: " + e);
+                }
             }
         }
     }
 
     public void setSupporter(String supporter) {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                "UPDATE tickets SET supporter =? WHERE ticketID =?"
+                "UPDATE tickets SET supporter = ? WHERE ticketID = ?;"
         )) {
-            statement.setString(1, ticketId);
-            statement.setString(2, supporter);
-            statement.executeUpdate();
+            statement.setString(1, supporter);
+            statement.setString(2, ticketId);
+            statement.execute();
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not set supporter: " + e);
         }
@@ -46,8 +47,8 @@ public class TicketData {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET owner = ? WHERE ticketID = ?"
         )) {
-            statement.setString(1, ticketId);
-            statement.setString(2, owner);
+            statement.setString(1, owner);
+            statement.setString(2, ticketId);
             statement.execute();
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not set owner: " + e);
@@ -85,18 +86,17 @@ public class TicketData {
     }
 
     public List<String> getInvolved() {
-        List<String> involved = new ArrayList<>();
+        List<String> involved = new ArrayList<>();;
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT involved FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticketId);
             ResultSet resultSet = statement.executeQuery();
+
             if (resultSet.next()) {
-                String s = Arrays.toString(resultSet.getString("involved").split(", "));
-                if (!s.equals("[]")) {
-                    involved.add(s);
+                if (!resultSet.getString("involved").equals("")) {
+                    involved.addAll(Arrays.asList(resultSet.getString("involved").split(", ")));
                 }
-                return involved;
             }
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not get involved members: " + e);
@@ -116,13 +116,11 @@ public class TicketData {
             }
         }
 
-        System.out.println(value);
-
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
-            statement.setString(1, ticketId);
-            statement.setString(2, value.toString());
+            statement.setString(1, value.toString());
+            statement.setString(2, ticketId);
             statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not add involved member: " + e);
@@ -144,8 +142,8 @@ public class TicketData {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "UPDATE tickets SET involved = ? WHERE ticketID = ?"
         )){
-            statement.setString(1, ticketId);
-            statement.setString(2, value.toString());
+            statement.setString(1, value.toString());
+            statement.setString(2, ticketId);
             statement.executeUpdate();
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not remove involved member: " + e);
@@ -158,7 +156,9 @@ public class TicketData {
                 "SELECT ticketID FROM tickets")){
             ResultSet resultSet = statement.executeQuery();
 
-            while (resultSet.next()) tickets.add(String.valueOf(resultSet.getRow()));
+            while (resultSet.next()) {
+                tickets.add(resultSet.getString("ticketID"));
+            }
         } catch (SQLException e) {
             System.out.println(ticketId + ": Could not get current tickets: " + e);
         }
@@ -168,7 +168,7 @@ public class TicketData {
     public void deleteEntry() {
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "DELETE FROM tickets WHERE ticketID=?"
-        )){
+        )) {
             statement.setString(1, ticketId);
             statement.execute();
         } catch (SQLException e) {

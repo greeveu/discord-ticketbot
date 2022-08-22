@@ -58,7 +58,7 @@ public class Ticket {
             }
         }
 
-        jda.getGuildById(serverID).createTextChannel("ticket" + (ticketData.getCurrentTickets().size() + 1), jda.getCategoryById(new Data().supportCategory))
+        jda.getGuildById(serverID).createTextChannel("ticket-" + (ticketData.getCurrentTickets().size() + 1), jda.getCategoryById(new Data().supportCategory))
                 .addRolePermissionOverride(jda.getGuildById(serverID).getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(staffID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)

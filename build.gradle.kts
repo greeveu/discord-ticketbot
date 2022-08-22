@@ -6,7 +6,6 @@ plugins {
 }
 
 group = "de.jjjannik"
-version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -19,10 +18,6 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.39.2.0")
 }
 
-tasks.jar {
-    manifest.attributes["Main-Class"] = "eu.greev.dcbot.Main"
-}
-
 tasks.withType()
 
 tasks.withType<JavaCompile> {
@@ -33,5 +28,4 @@ tasks.withType<ShadowJar>() {
     manifest {
         attributes["Main-Class"] = "eu.greev.dcbot.Main"
     }
-    //   ./gradlew shadowJar
 }
