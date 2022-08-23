@@ -101,14 +101,15 @@ public class Main extends ListenerAdapter {
         }
     }
 
-    public static void initDatasource() throws SQLException, IOException {
+    public static void initDatasource() throws SQLException {
         new File("./GreevTickets").mkdirs();
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
         HikariDataSource dataSource = new HikariDataSource(config);
         Main.dataSource = dataSource;
         testDataSource(dataSource);
-        if (!new File("./GreevTickets/tickets").exists()) initDb();
+
+        //initDb();
     }
 
     private static void initDb() throws SQLException, IOException {
@@ -128,7 +129,7 @@ public class Main extends ListenerAdapter {
                 stmt.execute();
             }
         }
-        System.out.println("Database setup complete.");
+        System.out.println("Database created");
     }
 
     private static void testDataSource(DataSource dataSource) throws SQLException {
