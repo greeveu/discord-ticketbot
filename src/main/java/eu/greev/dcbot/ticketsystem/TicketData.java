@@ -10,14 +10,15 @@ import java.util.Arrays;
 import java.util.List;
 
 public class TicketData {
-    private final String ticketId;
+    private String ticketId = "";
     private final DataSource dataSource;
 
+    //For ticket specific methods
     public TicketData(String ticketId, DataSource dataSource) {
         this.ticketId = ticketId;
         this.dataSource = dataSource;
 
-        if (!getOwner().equals("")) {
+        if (getOwner().equals("")) {
             if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
                 try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                         "INSERT INTO tickets(ticketID, owner, supporter, involved) VALUES(?, '', '', '')"
@@ -29,6 +30,11 @@ public class TicketData {
                 }
             }
         }
+    }
+
+    //Only for general database access!
+    public TicketData(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     public void setSupporter(String supporter) {

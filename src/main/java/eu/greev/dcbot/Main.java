@@ -2,8 +2,8 @@ package eu.greev.dcbot;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import eu.greev.dcbot.data.Data;
 import eu.greev.dcbot.ticketsystem.TicketListener;
-import eu.greev.dcbot.utils.data.Data;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
@@ -77,8 +77,7 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER,"member", "The user removing from the current ticket", true))
                 .addSubcommands(new SubcommandData("create", "Create a new Ticket for you")
                         .addOption(OptionType.STRING, "topic", "The topic of the ticket", false))
-                .addSubcommands(new SubcommandData("close", "Close this ticket")
-                        .addOption(OptionType.STRING, "reason", "The reason the ticket was closed", false))
+                .addSubcommands(new SubcommandData("close", "Close this ticket"))
                 .addSubcommands(new SubcommandData("claim", "Claim this ticket"))
                 .addSubcommands(new SubcommandData("owner", "Set the new owner of the ticket")
                         .addOption(OptionType.USER, "member", "The new owner"))
@@ -101,7 +100,7 @@ public class Main extends ListenerAdapter {
         }
     }
 
-    public static void initDatasource() throws SQLException {
+    public static void initDatasource() throws SQLException, IOException {
         new File("./GreevTickets").mkdirs();
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
@@ -109,7 +108,7 @@ public class Main extends ListenerAdapter {
         Main.dataSource = dataSource;
         testDataSource(dataSource);
 
-        //initDb();
+        initDb();
     }
 
     private static void initDb() throws SQLException, IOException {

@@ -1,60 +1,59 @@
 package eu.greev.dcbot.ticketsystem;
 
-import eu.greev.dcbot.utils.Utils;
-import eu.greev.dcbot.utils.data.Data;
+import eu.greev.dcbot.data.Data;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.IPermissionHolder;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import javax.sql.DataSource;
 import java.awt.*;
 import java.io.*;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 public class Ticket {
     private User owner;
     private User supporter;
-    private String topic = "No topic given";
-    private final String id;
-    private final TicketData ticketData;
     private File transcript;
+    private TextChannel ticketChannel;
+    private long ticketChannelID;
+    private String id;
+    private String topic = "No topic given";
+    private final TicketData ticketData;
     private final JDA jda;
+    private final DataSource dataSource;
     private final String serverID = new Data().serverID;
     private final long staffID = new Data().teamID;
-    private TextChannel ticketChannel;
-    private final DataSource dataSource;
-    private boolean closeableByCreator = false;
 
     protected Ticket(User owner, JDA jda, DataSource dataSource) {
         this.dataSource = dataSource;
         this.owner = owner;
         this.jda = jda;
         id = "";
-        ticketData = new TicketData(id, dataSource);
+        ticketData = new TicketData(dataSource);
     }
 
     protected Ticket(long ticketChannelId, JDA jda, DataSource dataSource) {
         this.dataSource = dataSource;
         this.jda = jda;
-        id = jda.getTextChannelById(ticketChannelId).getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "");
+        ticketChannel = jda.getTextChannelById(ticketChannelId);
+        this.ticketChannelID = ticketChannelId;
+        id = ticketChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "");
         ticketData = new TicketData(id, dataSource);
+        owner = jda.getUserById(ticketData.getOwner());
+        transcript = new File("./GreevTickets/transcripts/" + getID() + ".txt");
     }
 
-    protected boolean createNewTicket(String info) {
+    protected boolean createNewTicket(String info, String topic) {
         Member owner = jda.getGuildById(serverID).getMember(this.owner);
+        if (topic.equals("")) topic = "No topic given";
+        this.topic = topic;
 
         for (TextChannel textChannel : jda.getGuildById(serverID).getTextChannels()) {
-            if (textChannel.getName().contains("ticket-") &&
-                    new TicketData(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", ""), dataSource).getOwner().equals(owner.getId())) {
-                return false;
+            if (textChannel.getName().contains("ticket-")) {
+                if (new TicketData(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", ""), dataSource).getOwner().equals(owner.getId())) return false;
             }
         }
 
@@ -63,134 +62,108 @@ public class Ticket {
                 .addRolePermissionOverride(staffID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
-                .queueAfter(500, TimeUnit.MILLISECONDS, success -> {
-                    this.ticketChannel = success;
-                    TicketData ticketData = new TicketData((this.ticketData.getCurrentTickets().size() + 1) + "", dataSource);
+                .queue(success -> {
+                    ticketChannelID = success.getIdLong();
+                    ticketChannel = jda.getGuildById(serverID).getTextChannelById(ticketChannelID);
+
+                    id = !new TicketData(dataSource).getCurrentTickets().isEmpty() ? (new TicketData(dataSource).getCurrentTickets().size() + 1) + "" : "1";
+                    TicketData ticketData = new TicketData(id, dataSource);
                     ticketData.setOwner(owner.getId());
 
-                    try {
-                        new File("./GreevTickets/transcripts").mkdirs();
-                        File transcript = new File("./GreevTickets/transcripts/123.txt");
-                        transcript.createNewFile();
-                        this.transcript = transcript;
-                    } catch (IOException e) {
-                        System.out.println("Could not create transcript");
-                    }
-
                     EmbedBuilder builder = new EmbedBuilder();
-                    EmbedBuilder builder1 = new EmbedBuilder();
                     builder.setColor(new Color(63,226,69,255));
-                    builder.setDescription("Hello there, " + owner.getAsMention() + "!" + """
+                    builder.setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
                             In the mean time, please describe your issue in as much detail as possible! :)
                             """);
-                    builder.addField("Topic", topic, false);
-                    builder.setAuthor(owner.getEffectiveName(), owner.getEffectiveAvatarUrl());
+                    builder.addField("Topic", this.topic, false);
+                    builder.setAuthor(owner.getEffectiveName(),null, owner.getEffectiveAvatarUrl());
                     builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
 
-                    builder1.setColor(new Color(63,226,69,255));
-                    builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
-                    builder1.setDescription("If you opened this ticket accidentally, you have now the change to close it again for 1 minute! Just write 'nevermind'\nThis message will delete itself after this minute");
+                    success.sendMessage(owner.getAsMention() + " has created a new ticket").queue(s -> {
+                        success.sendMessageEmbeds(builder.build())
+                                .setActionRow(Button.primary("ticket-claim", "Claim"),
+                                        Button.danger("ticket-close", "Close"))
+                                .queue(q -> {
+                                    EmbedBuilder builder1 = new EmbedBuilder();
+                                    builder1.setColor(new Color(63,226,69,255));
+                                    builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                    builder1.setDescription("If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below\nThis message will delete itself after this minute");
 
-                    success.sendMessage(owner.getAsMention() + " has created a new ticket"
-                            + "https://cdn.discordapp.com/attachments/1002631949275365488/1002631954727964772/how-can-i-help-2.gif").queueAfter(10, TimeUnit.MILLISECONDS);
-                    success.sendMessageEmbeds(builder.build())
-                            .setActionRow(Button.primary("ticket-claim", "Claim"),
-                                    Button.danger("ticket-close", "Close"))
-                            .queueAfter(15, TimeUnit.MILLISECONDS, s -> {
-                                try {
-                                    new File("./GreevTickets/transcripts").mkdirs();
-                                    File file = new File("./GreevTickets/transcripts/123.txt");
-                                    file.createNewFile();
-
-                                    BufferedWriter fw = new BufferedWriter(new FileWriter(file, true));
-                                    fw.write(success.getId());
-                                    fw.newLine();
-                                    fw.close();
-                                } catch (IOException e) {
-                                    System.out.println("Could not create transcript");
-                                }
-                            });
-                    success.sendMessageEmbeds(builder1.build()).queueAfter(20, TimeUnit.MILLISECONDS, s -> {
-                        closeableByCreator = true;
-                        while (closeableByCreator) {
-                            boolean a = true;
-                            if (a) {
-                                Timer timer = new Timer();
-                                timer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        closeableByCreator = false;
-                                        s.delete().queue();
-                                        timer.cancel();
+                                    if (!info.equals("")) {
+                                        EmbedBuilder infoBuilder = new EmbedBuilder();
+                                        if (supporter != null) {
+                                            infoBuilder.setAuthor(supporter.getName(), null, supporter.getEffectiveAvatarUrl());
+                                        }
+                                        infoBuilder.setColor(new Color(63,226,69,255));
+                                        infoBuilder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                        infoBuilder.setTitle("**Extra**");
+                                        infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
+                                        success.sendMessageEmbeds(infoBuilder.build()).submit();
                                     }
-                                }, TimeUnit.MILLISECONDS.toMinutes(1), TimeUnit.MILLISECONDS.toSeconds(1));
-                                a = false;
-                            }
-                            if (success.getHistory().getMessageById(success.getLatestMessageId()).getContentRaw().equals("nevermind")) {
-                                closeTicket(true);
-                                ticketData.deleteEntry();
-                                closeableByCreator = false;
-                            }
-                        }
-                    });
 
-                    if (!info.equals("")) {
-                        EmbedBuilder infoBuilder = new EmbedBuilder();
-                        infoBuilder.setColor(new Color(63,226,69,255));
-                        infoBuilder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
-                        infoBuilder.setTitle("**Extra**");
-                        infoBuilder.addField("Given Information", info, false);
-                        success.sendMessageEmbeds(infoBuilder.build()).queue();
-                    }
+                                    success.sendMessageEmbeds(builder1.build())
+                                            .setActionRow(Button.danger("ticket-nevermind", "Nevermind!"))
+                                            .queue(suc -> {
+                                                suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {});
+                                            });
+
+                                    new File("./GreevTickets/transcripts").mkdirs();
+                                    File transcript = new File("./GreevTickets/transcripts/" + id + ".txt");
+                                    try {
+                                        transcript.createNewFile();
+                                        this.transcript = transcript;
+                                        BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
+                                        writer.write(q.getId());
+                                        writer.newLine();
+                                        writer.close();
+                                    } catch (IOException e) {
+                                        System.out.println("Could not create transcript");
+                                    }
+                                });
+                    });
                 });
         return true;
     }
 
     protected void closeTicket(boolean wasAccident) {
-        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
-            supporter = s;
-        });
+        EmbedBuilder builder = new EmbedBuilder();
+        if (!ticketData.getSupporter().equals("")) {
+            jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+                supporter = s;
+                builder.setAuthor(supporter.getName(), null, supporter.getEffectiveAvatarUrl());
+            });
+        }
         jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
             owner = s;
         });
         if (wasAccident) {
             ticketChannel.delete().queue();
+            new TicketData(id, dataSource).deleteEntry();
+            new File("./GreevTickets/transcripts/" + id + ".txt").delete();
         }else {
-            EmbedBuilder builder = new EmbedBuilder();
-            builder.setAuthor(supporter.getName(), supporter.getEffectiveAvatarUrl());
             builder.setTitle("Ticket " + id);
-            builder.addField("Text Transcript", "See attachment", false);
+            builder.addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false);
             builder.setColor(new Color(37, 150, 190));
             builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
-
-            jda.getGuildById(serverID).loadMembers(member -> {
-                if (member.getId().equals(owner.getId())) {
-                    try {
-                        Utils.sendPrivateEmbed(member.getUser(), builder);
-                    }catch (Exception e) {
-                        System.out.println("Kritischer Fehler beim senden des Ticket-Close-Embeds");
-                        e.printStackTrace();
-                        Utils.sendPrivateMessage(member.getUser(), "Es ist ein Fehler beim Senden des Closed-Embeds aufgetreten!\nBitte kontaktieren Sie <@!661151077600722947>");
-                    }
-                }
-            });
+            owner.openPrivateChannel()
+                    .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).addFile(transcript))
+                    .complete();
             ticketChannel.delete().queue();
         }
     }
 
     protected boolean claim(User supporter) {
-        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
-            this.supporter = s;
-        });
         jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
             owner = s;
         });
 
         if (supporter != owner) {
+            this.topic = ticketChannel.getTopic().split(" \\|")[1];
             this.supporter = supporter;
             ticketData.setSupporter(supporter.getId());
-            ticketChannel.getManager().setName("✓-ticket-" + id).queue();
+
+            ticketChannel.getManager().setTopic(owner.getAsMention() + " | " + topic + " | " + supporter.getAsMention()).setName("✓-ticket-" + id).queue();
 
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(new Color(63,226,69,255));
@@ -204,7 +177,8 @@ public class Ticket {
             try {
                 BufferedReader reader = new BufferedReader(new FileReader(transcript));
                 ticketChannel.editMessageEmbedsById(reader.lines().toList().get(0), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
-            } catch (FileNotFoundException e) {
+                reader.close();
+            } catch (IOException e) {
                 System.out.println("Could not get Embed ID from transcript because: " + e);
             }
             return true;
@@ -221,23 +195,21 @@ public class Ticket {
         }
     }
 
-    protected boolean isWaiting() {
-        return ticketChannel.getName().contains("\uD83D\uDD50");
-    }
-
     protected boolean addUser(User user) {
-        if (getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user)).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+        PermissionOverride permissionOverride = getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user));
+        if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || jda.getGuildById(serverID).getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
         }else {
-            getTicketChannel().upsertPermissionOverride((IPermissionHolder) user).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            getTicketChannel().upsertPermissionOverride(jda.getGuildById(serverID).getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticketData.addInvolved(user.getId());
             return true;
         }
     }
 
     protected boolean removeUser(User user) {
-        if (getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user)).getAllowed().contains(Permission.VIEW_CHANNEL)) {
-            getTicketChannel().upsertPermissionOverride((IPermissionHolder) user).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        PermissionOverride permissionOverride = getTicketChannel().getPermissionOverride(jda.getGuildById(serverID).getMember(user));
+        if (permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            getTicketChannel().upsertPermissionOverride(jda.getGuildById(serverID).getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticketData.removeInvolved(user.getId());
             return true;
         }else {
@@ -245,17 +217,12 @@ public class Ticket {
         }
     }
 
-    protected TextChannel getTicketChannel() {
-        return ticketChannel;
-    }
-
     protected boolean setOwner(User owner) {
-        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
-            supporter = s;
-        });
-        jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
-            this.owner = s;
-        });
+        if (!ticketData.getSupporter().equals("")) {
+            jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+                supporter = s;
+            });
+        }
         if (this.owner.equals(owner)) {
             return false;
         } else {
@@ -271,9 +238,6 @@ public class Ticket {
     }
 
     protected boolean setSupporter(User supporter) {
-        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
-            this.supporter = s;
-        });
         jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
             owner = s;
         });
@@ -288,9 +252,11 @@ public class Ticket {
     }
 
     protected void setTopic(String topic) {
-        jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
-            supporter = s;
-        });
+        if (!ticketData.getSupporter().equals("")) {
+            jda.retrieveUserById(ticketData.getSupporter()).queue(s -> {
+                supporter = s;
+            });
+        }
         jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
             owner = s;
         });
@@ -306,8 +272,28 @@ public class Ticket {
         return member.getUser().equals(supporter) || member.getUser().equals(owner) || member.getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID));
     }
 
+    protected boolean isWaiting() {
+        return ticketChannel.getName().contains("\uD83D\uDD50");
+    }
+
+    protected boolean isClaimed() {
+        return ticketChannel.getTopic().split(" \\| ").length > 2;
+    }
+
+    protected String getTopic() {
+        return topic;
+    }
+
+    protected User getOwner() {
+        return owner;
+    }
+
     protected File getTranscript() {
         return transcript;
+    }
+
+    protected TextChannel getTicketChannel() {
+        return ticketChannel;
     }
 
     protected String getID() {

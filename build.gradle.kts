@@ -18,8 +18,6 @@ dependencies {
     implementation("org.xerial:sqlite-jdbc:3.39.2.0")
 }
 
-tasks.withType()
-
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
 }
