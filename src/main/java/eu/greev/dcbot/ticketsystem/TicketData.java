@@ -21,7 +21,7 @@ public class TicketData {
         if (getOwner().equals("")) {
             if (!String.valueOf(getCurrentTickets().size()).equals(ticketId)) {
                 try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                        "INSERT INTO tickets(ticketID, owner, supporter, involved) VALUES(?, '', '', '')"
+                        "INSERT INTO tickets(ticketID) VALUES(?)"
                 )) {
                     statement.setString(1, ticketId);
                     statement.execute();

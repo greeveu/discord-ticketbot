@@ -4,8 +4,12 @@ import eu.greev.dcbot.data.Data;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.PermissionOverride;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 import javax.sql.DataSource;
 import java.awt.*;
@@ -147,7 +151,7 @@ public class Ticket {
             builder.setColor(new Color(37, 150, 190));
             builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
             owner.openPrivateChannel()
-                    .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).addFile(transcript))
+                    .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript)))
                     .complete();
             ticketChannel.delete().queue();
         }
@@ -226,8 +230,10 @@ public class Ticket {
         if (this.owner.equals(owner)) {
             return false;
         } else {
+            ticketChannel.upsertPermissionOverride(jda.getGuildById(serverID).getMember(this.owner)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND).queue();
             this.owner = owner;
             ticketData.setOwner(owner.getId());
+            ticketChannel.upsertPermissionOverride(jda.getGuildById(serverID).getMember(owner)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND).queue();
             if (supporter != null) {
                 getTicketChannel().getManager().setTopic(owner.getAsMention() + " | " + topic + " | " + supporter.getAsMention()).queue();
             }else {
@@ -241,7 +247,7 @@ public class Ticket {
         jda.retrieveUserById(ticketData.getOwner()).queue(s -> {
             owner = s;
         });
-        if (((Member) supporter).getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID)) && this.supporter != supporter) {
+        if (jda.getGuildById(serverID).getMember(supporter).getRoles().contains(jda.getGuildById(serverID).getRoleById(staffID)) && this.supporter != supporter) {
             this.supporter = supporter;
             ticketData.setSupporter(supporter.getId());
             getTicketChannel().getManager().setTopic(owner.getAsMention() + " | " + topic + " | " + supporter.getAsMention()).queue();

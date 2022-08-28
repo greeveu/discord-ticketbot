@@ -329,7 +329,7 @@ public class TicketListener extends ListenerAdapter {
                                 .queue();
 
                         EmbedBuilder builder1 = new EmbedBuilder();
-                        builder1.setAuthor(member.getAsMention(), null, event.getMember().getEffectiveAvatarUrl());
+                        builder1.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                         builder1.addField("✅ **Ticket created**", "Successfully setup ticketsystem " + event.getGuild().getTextChannelById(data.baseChannel).getAsMention(), false);
                         builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
 
@@ -380,7 +380,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
                                 builder.setColor(new Color(63, 226, 69, 255));
-                                builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
+                                builder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
 
                                 File transcript = new File("./GreevTickets/transcripts/" + ticket.getID() + ".txt");
@@ -490,7 +490,7 @@ public class TicketListener extends ListenerAdapter {
                         event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
                     }
                 }
-                case "supporter" -> {
+                case "set-supporter" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
@@ -517,11 +517,11 @@ public class TicketListener extends ListenerAdapter {
                         event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
                     }
                 }
-                case "owner" -> {
+                case "set-owner" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (!ticket.hasAccess(event.getMember())) {
+                            if (!ticket.hasAccess(member)) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel", false);
@@ -554,7 +554,7 @@ public class TicketListener extends ListenerAdapter {
                         event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
                     }
                 }
-                case "waiting" -> {
+                case "set-waiting" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
@@ -581,7 +581,7 @@ public class TicketListener extends ListenerAdapter {
                         event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
                     }
                 }
-                case "topic" -> {
+                case "set-topic" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);

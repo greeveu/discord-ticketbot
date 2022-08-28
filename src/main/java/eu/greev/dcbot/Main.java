@@ -79,12 +79,12 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.STRING, "topic", "The topic of the ticket", false))
                 .addSubcommands(new SubcommandData("close", "Close this ticket"))
                 .addSubcommands(new SubcommandData("claim", "Claim this ticket"))
-                .addSubcommands(new SubcommandData("owner", "Set the new owner of the ticket")
+                .addSubcommands(new SubcommandData("set-owner", "Set the new owner of the ticket")
                         .addOption(OptionType.USER, "member", "The new owner"))
-                .addSubcommands(new SubcommandData("waiting", "Set the ticket in waiting mode"))
-                .addSubcommands(new SubcommandData("supporter", "Sets the new supporter")
+                .addSubcommands(new SubcommandData("set-waiting", "Set the ticket in waiting mode"))
+                .addSubcommands(new SubcommandData("set-supporter", "Sets the new supporter")
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
-                .addSubcommands(new SubcommandData("topic", "Set the topic of the ticket")
+                .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
         );
     }

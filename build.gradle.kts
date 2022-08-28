@@ -12,7 +12,7 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.0.0-alpha.17")
+    implementation("net.dv8tion:JDA:5.0.0-alpha.18")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.slf4j:slf4j-log4j12:2.0.0-alpha7")
     implementation("org.xerial:sqlite-jdbc:3.39.2.0")
