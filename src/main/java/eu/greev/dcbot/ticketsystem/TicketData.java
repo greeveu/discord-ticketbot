@@ -1,5 +1,7 @@
 package eu.greev.dcbot.ticketsystem;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 public class TicketData {
     private String ticketId = "";
     private final DataSource dataSource;
@@ -26,7 +29,7 @@ public class TicketData {
                     statement.setString(1, ticketId);
                     statement.execute();
                 } catch (SQLException e) {
-                    System.out.println(ticketId + ": Could not set ticketID: " + e);
+                    log.error(ticketId + ": Could not set ticketID", e);
                 }
             }
         }
@@ -45,7 +48,7 @@ public class TicketData {
             statement.setString(2, ticketId);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not set supporter: " + e);
+            log.error(ticketId + ": Could not set supporter", e);
         }
     }
 
@@ -57,7 +60,7 @@ public class TicketData {
             statement.setString(2, ticketId);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not set owner: " + e);
+            log.error(ticketId + ": Could not set owner", e);
         }
     }
 
@@ -71,7 +74,7 @@ public class TicketData {
                 return resultSet.getString("owner");
             }
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not get owner: " + e);
+            log.error(ticketId + ": Could not get owner", e);
         }
         return "";
     }
@@ -86,7 +89,7 @@ public class TicketData {
                 return resultSet.getString("supporter");
             }
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not get supporter: " + e);
+            log.error(ticketId + ": Could not get supporter", e);
         }
         return "";
     }
@@ -105,7 +108,7 @@ public class TicketData {
                 }
             }
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not get involved members: " + e);
+            log.error(ticketId + ": Could not get involved members", e);
         }
         return involved;
     }
@@ -129,7 +132,7 @@ public class TicketData {
             statement.setString(2, ticketId);
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not add involved member: " + e);
+            log.error(ticketId + ": Could not add involved member", e);
         }
     }
 
@@ -152,7 +155,7 @@ public class TicketData {
             statement.setString(2, ticketId);
             statement.executeUpdate();
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not remove involved member: " + e);
+            log.error(ticketId + ": Could not remove involved member", e);
         }
     }
 
@@ -166,7 +169,7 @@ public class TicketData {
                 tickets.add(resultSet.getString("ticketID"));
             }
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not get current tickets: " + e);
+            log.error(ticketId + ": Could not get current tickets", e);
         }
         return tickets;
     }
@@ -178,7 +181,7 @@ public class TicketData {
             statement.setString(1, ticketId);
             statement.execute();
         } catch (SQLException e) {
-            System.out.println(ticketId + ": Could not delete entry: " + e);
+            log.error(ticketId + ": Could not delete entry", e);
         }
     }
 }

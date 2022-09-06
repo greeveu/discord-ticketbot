@@ -2,9 +2,11 @@ CREATE TABLE IF NOT EXISTS tickets
 (
 	ticketID	VARCHAR                     NOT NULL,
 
-	owner    	VARCHAR(20) DEFAULT ""      NOT NULL,
+    channelID   VARCHAR     DEFAULT ""      NOT NULL,
 
-	supporter	VARCHAR(20) DEFAULT ""      NOT NULL,
+	owner    	VARCHAR     DEFAULT ""      NOT NULL,
+
+	supporter	VARCHAR     DEFAULT ""      NOT NULL,
 
 	involved    VARCHAR     DEFAULT ""      NOT NULL,
 

@@ -1,6 +1,7 @@
 package eu.greev.dcbot.ticketsystem;
 
-import eu.greev.dcbot.data.Data;
+import eu.greev.dcbot.utils.Constants;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
@@ -32,28 +33,28 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+@Slf4j
 public class TicketListener extends ListenerAdapter {
     private final Role staff;
     private final DataSource dataSource;
     private final JDA jda;
-    private final Data data = new Data();
     private final EmbedBuilder missingPerm;
     private final EmbedBuilder wrongChannel;
 
     public TicketListener(JDA jda, DataSource dataSource) {
         this.dataSource = dataSource;
         this.jda = jda;
-        String serverID = data.serverID;
-        staff = jda.getGuildById(serverID).getRoleById(data.teamID);
+        long serverID = Constants.SERVER_ID;
+        staff = jda.getGuildById(serverID).getRoleById(Constants.TEAM_ID);
         missingPerm = new EmbedBuilder();
         missingPerm.setColor(Color.RED);
         missingPerm.addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
-        missingPerm.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+        missingPerm.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
         wrongChannel = new EmbedBuilder();
         wrongChannel.setColor(Color.RED);
         wrongChannel.addField("❌ **Wrong channel**", "You have to use this command in a ticket!", false);
-        wrongChannel.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+        wrongChannel.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
     }
 
     @Override
@@ -68,7 +69,7 @@ public class TicketListener extends ListenerAdapter {
                         ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
                         if (ticket.claim(event.getUser())) {
                             EmbedBuilder builder = new EmbedBuilder();
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                             builder.setColor(new Color(63, 226, 69, 255));
                             builder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
                             builder.addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
@@ -78,7 +79,7 @@ public class TicketListener extends ListenerAdapter {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setColor(Color.RED);
                             builder.addField("❌ **Failed claiming**", "You can not claim this ticket!", false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                         }
@@ -173,7 +174,7 @@ public class TicketListener extends ListenerAdapter {
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setColor(Color.RED);
                     builder.addField("❌ **Missing access**", "You can not click this button", false);
-                    builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                     event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                 }
             }
@@ -194,7 +195,7 @@ public class TicketListener extends ListenerAdapter {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                             builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             timer.cancel();
@@ -206,7 +207,7 @@ public class TicketListener extends ListenerAdapter {
                         if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
                             builder.setColor(Color.RED);
                             builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         }
                     });
                     event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -222,7 +223,7 @@ public class TicketListener extends ListenerAdapter {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                             builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             timer.cancel();
@@ -234,7 +235,7 @@ public class TicketListener extends ListenerAdapter {
                         if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
                             builder.setColor(Color.RED);
                             builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         }
                     });
                     event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -253,7 +254,7 @@ public class TicketListener extends ListenerAdapter {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                             builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             timer.cancel();
@@ -265,7 +266,7 @@ public class TicketListener extends ListenerAdapter {
                         if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
                             builder.setColor(Color.RED);
                             builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         }
                     });
                     event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -283,7 +284,7 @@ public class TicketListener extends ListenerAdapter {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                             builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             timer.cancel();
@@ -295,7 +296,7 @@ public class TicketListener extends ListenerAdapter {
                         if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
                             builder.setColor(Color.RED);
                             builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         }
                     });
                     event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -312,7 +313,7 @@ public class TicketListener extends ListenerAdapter {
                 case "setup" -> {
                     if (member.getPermissions().contains(Permission.ADMINISTRATOR)) {
                         EmbedBuilder builder = new EmbedBuilder();
-                        builder.setFooter("Powered by Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                        builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         builder.addField(new MessageEmbed.Field("**Support request**", """
                                 You have questions or a problem?
                                 Just click the one of the buttons below or use </ticket create:1007234722805592126> somewhere else.
@@ -320,7 +321,7 @@ public class TicketListener extends ListenerAdapter {
                                 """, false));
                         builder.setColor(new Color(63, 226, 69, 255));
 
-                        jda.getTextChannelById(data.baseChannel).sendMessageEmbeds(builder.build())
+                        jda.getTextChannelById(Constants.BASE_CHANNEL).sendMessageEmbeds(builder.build())
                                 .setActionRow(
                                         Button.primary("ticket-create-pardon", "Pardon"),
                                         Button.primary("ticket-create-report", "Report"),
@@ -330,8 +331,8 @@ public class TicketListener extends ListenerAdapter {
 
                         EmbedBuilder builder1 = new EmbedBuilder();
                         builder1.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                        builder1.addField("✅ **Ticket created**", "Successfully setup ticketsystem " + event.getGuild().getTextChannelById(data.baseChannel).getAsMention(), false);
-                        builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                        builder1.addField("✅ **Ticket created**", "Successfully setup ticketsystem " + event.getGuild().getTextChannelById(Constants.BASE_CHANNEL).getAsMention(), false);
+                        builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                         event.replyEmbeds(builder1.build()).setEphemeral(true).queue();
                     } else {
@@ -354,7 +355,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
                                 builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                                 timer.cancel();
@@ -366,7 +367,7 @@ public class TicketListener extends ListenerAdapter {
                             if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                             }
                         });
                         event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -378,12 +379,12 @@ public class TicketListener extends ListenerAdapter {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
                             if (ticket.claim(event.getUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 builder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
 
-                                File transcript = new File("./GreevTickets/transcripts/" + ticket.getID() + ".txt");
+                                File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
                                 try {
                                     BufferedReader reader = new BufferedReader(new FileReader(transcript));
                                     List<String> lines = reader.lines().toList();
@@ -396,19 +397,18 @@ public class TicketListener extends ListenerAdapter {
                                         """);
                                     builder1.addField("Topic", ticket.getTopic(), false);
                                     builder1.setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
-                                    builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                    builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                     ticket.getTicketChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                                 } catch (IOException e) {
-                                    System.out.println("Failed reading File: " + e);
+                                    log.error("Failed reading File", e);
                                 }
-
                                 event.replyEmbeds(builder.build()).queue();
                             } else {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Failed claiming**", "You can not claim this ticket!", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -442,7 +442,7 @@ public class TicketListener extends ListenerAdapter {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
                             if (ticket.addUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **Member added**", event.getOption("member").getAsUser().getAsMention() + " got added to the ticket", false);
@@ -452,7 +452,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Adding member failed**", event.getOption("member").getAsUser().getAsMention() + " is already in the ticket", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -469,7 +469,7 @@ public class TicketListener extends ListenerAdapter {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
                             if (ticket.removeUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **Member removed**", event.getOption("member").getAsUser().getAsMention() + " got removed from the ticket", false);
@@ -479,7 +479,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Removing member failed**", event.getOption("member").getAsUser().getAsMention() + " is already not in the ticket", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -496,7 +496,7 @@ public class TicketListener extends ListenerAdapter {
                             Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
                             if (ticket.setSupporter(event.getOption("staff").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **New supporter**", event.getOption("staff").getAsUser().getAsMention() + " is the new supporter", false);
@@ -506,7 +506,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -525,7 +525,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                                 return;
@@ -533,7 +533,7 @@ public class TicketListener extends ListenerAdapter {
 
                             if (ticket.setOwner(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
                                 builder.addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
@@ -543,7 +543,7 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new owner failed**", "This member is already the creator", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -563,14 +563,14 @@ public class TicketListener extends ListenerAdapter {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setAuthor(member.getEffectiveName(), null, member.getEffectiveAvatarUrl());
                                 builder.setDescription("Waiting for response.");
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
                                 event.replyEmbeds(builder.build()).queue();
                             }else {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Changing waiting mode failed**", "This ticket is already in waiting mode!", false);
-                                builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
@@ -588,12 +588,12 @@ public class TicketListener extends ListenerAdapter {
                             ticket.setTopic(event.getOption("topic").getAsString());
 
                             EmbedBuilder builder = new EmbedBuilder();
-                            builder.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                             builder.setColor(new Color(63, 226, 69, 255));
                             builder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
                             builder.addField("✅ **New Topic**", "Changed topic to '" + event.getOption("topic").getAsString() + "'", false);
 
-                            File transcript = new File("./GreevTickets/transcripts/" + ticket.getID() + ".txt");
+                            File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
                             try {
                                 BufferedReader reader = new BufferedReader(new FileReader(transcript));
                                 List<String> lines = reader.lines().toList();
@@ -606,7 +606,7 @@ public class TicketListener extends ListenerAdapter {
                                         """);
                                 builder1.addField("Topic", ticket.getTopic(), false);
                                 builder1.setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
-                                builder1.setFooter("Greev.eu", "https://cdn.pluoi.com/greev/logo-clear.png");
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 if (ticket.isClaimed()) {
                                     ticket.getTicketChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
@@ -615,7 +615,7 @@ public class TicketListener extends ListenerAdapter {
                                             Button.danger("ticket-close", "Close")).queue();
                                 }
                             } catch (IOException e) {
-                                System.out.println("Failed reading File: " + e);
+                                log.error("Failed reading File", e);
                             }
                             event.replyEmbeds(builder.build()).queue();
                         } else {
@@ -635,14 +635,13 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
-            //Handling Waiting stage
             Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
             if (ticket.isWaiting()) {
                 ticket.toggleWaiting(false);
             }
 
             File transcript = ticket.getTranscript();
-            String log = event.getMessageId() + "} "
+            String content = event.getMessageId() + "} "
                     + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                     + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
                     + ":>>> " + event.getMessage().getContentDisplay();
@@ -651,20 +650,20 @@ public class TicketListener extends ListenerAdapter {
                     new File("./GreevTickets/transcripts").mkdirs();
                     if (transcript.createNewFile()) {
                         BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
-                        writer.write("Transcript of ticket #" + ticket.getID());
+                        writer.write("Transcript of ticket #" + ticket.getId());
                         writer.newLine();
                         writer.close();
                     }
                 } catch (IOException e) {
-                    System.out.println("Could not create transcript");
+                    log.error("Could not create transcript", e);
                 }
 
                 BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
-                writer.write(log);
+                writer.write(content);
                 writer.newLine();
                 writer.close();
             } catch (IOException e) {
-                System.out.println("Could not write in file: " + e);
+                log.error("Could not write in file", e);
             }
         }
     }
@@ -674,7 +673,7 @@ public class TicketListener extends ListenerAdapter {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-")) {
             Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
             File transcript = ticket.getTranscript();
-            File temp = new File("./GreevTickets/transcripts/" + ticket.getID() + ".temp");
+            File temp = new File("./GreevTickets/transcripts/" + ticket.getId() + ".temp");
 
             try {
                 temp.createNewFile();
@@ -691,7 +690,6 @@ public class TicketListener extends ListenerAdapter {
                         } catch (ArrayIndexOutOfBoundsException e) {
                             return;
                         }
-
                         writer.write(log);
                         writer.newLine();
                     } else {
@@ -703,8 +701,7 @@ public class TicketListener extends ListenerAdapter {
                 transcript.delete();
                 temp.renameTo(transcript);
             } catch (IOException e) {
-                System.out.println("Could not read file: ");
-                e.printStackTrace();
+                log.error("Could not read file", e);
             }
         }
     }
@@ -714,7 +711,7 @@ public class TicketListener extends ListenerAdapter {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
             Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
             File transcript = ticket.getTranscript();
-            File temp = new File("./GreevTickets/transcripts/" + ticket.getID() + ".temp");
+            File temp = new File("./GreevTickets/transcripts/" + ticket.getId() + ".temp");
 
             try {
                 temp.createNewFile();
@@ -729,14 +726,11 @@ public class TicketListener extends ListenerAdapter {
                     if (line.split("}")[0].equals(msgID)) {
                         if (line.split("~edit-").length > 1) {
                             edits += Integer.parseInt(line.split("~edit-")[line.split("~edit-").length - 1].substring(0, 1));
-                            System.out.println(edits);
                         }
                         String message;
                         if (edits == 1) {
-                            System.out.println(1);
                             message = "~original~: " + line.split(":>>> ")[1] + " | ~edit-1~:>> " + event.getMessage().getContentDisplay();
                         } else {
-                            System.out.println(2);
                             message = line.split("~edit-" + edits)[0].split(":>>> ")[1] + "  ~edit-" + edits + "~:>> " + event.getMessage().getContentDisplay();
                         }
                         writer.write(line.split(":>>> ")[0] + ":>>> " + message);
@@ -750,8 +744,7 @@ public class TicketListener extends ListenerAdapter {
                 transcript.delete();
                 temp.renameTo(transcript);
             } catch (IOException e) {
-                System.out.println("Could not read file: ");
-                e.printStackTrace();
+                log.error("Could not read file", e);
             }
         }
     }
