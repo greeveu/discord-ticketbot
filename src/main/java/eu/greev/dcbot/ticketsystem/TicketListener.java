@@ -1,14 +1,14 @@
 package eu.greev.dcbot.ticketsystem;
 
+import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import eu.greev.dcbot.ticketsystem.service.TicketData;
+import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -26,7 +26,10 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 import javax.sql.DataSource;
 import java.awt.*;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -61,13 +64,14 @@ public class TicketListener extends ListenerAdapter {
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
         if (event.getButton().getId() == null) return;
         Ticket ticket;
+        TicketService service;
         switch (event.getButton().getId()) {
             case "ticket-claim" -> {
                 if (event.getMember().getRoles().contains(staff)) {
                     if (event.getMessageChannel().getName().contains("ticket-")) {
-
-                        ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                        if (ticket.claim(event.getUser())) {
+                        ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                        service = new TicketService(ticket, jda, dataSource);
+                        if (service.claim(event.getUser())) {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                             builder.setColor(new Color(63, 226, 69, 255));
@@ -165,11 +169,12 @@ public class TicketListener extends ListenerAdapter {
                         .build();
                 event.replyModal(modal).queue();
             }
-            case "ticket-confirm" -> new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource).closeTicket(false);
+            case "ticket-confirm" ->  new TicketService(TicketData.loadTicket(event.getChannel().getIdLong()), jda, dataSource).closeTicket(false);
             case "ticket-nevermind" -> {
-                ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
+                ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                service = new TicketService(ticket, jda, dataSource);
                 if (ticket.getOwner().equals(event.getUser())) {
-                    ticket.closeTicket(true);
+                    service.closeTicket(true);
                 }else {
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setColor(Color.RED);
@@ -183,18 +188,19 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
-        Ticket ticket = new Ticket(event.getUser(), jda, dataSource);
+        final Ticket ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "", dataSource);
+        final TicketService service = new TicketService(ticket, jda, dataSource);
         switch (event.getModalId()) {
             case "custom" -> {
                 String topic = event.getValue("topic").getAsString();
-                if (ticket.createNewTicket("", topic)) {
+                if (service.createNewTicket("", topic, event.getUser())) {
                     Timer timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -215,14 +221,14 @@ public class TicketListener extends ListenerAdapter {
             }
             case "complain" -> {
                 String complain = event.getValue("complain").getAsString();
-                if (ticket.createNewTicket(complain, "Complain")) {
+                if (service.createNewTicket(complain, "Complain", event.getUser())) {
                     Timer timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -246,14 +252,14 @@ public class TicketListener extends ListenerAdapter {
                 String report = event.getValue("hacker").getAsString();
                 String reason = event.getValue("reason").getAsString();
 
-                if (ticket.createNewTicket(name + " wants to report " + report + "\n\n**Reason:**\n" + reason, name + " wants to report " + report)) {
+                if (service.createNewTicket(name + " wants to report " + report + "\n\n**Reason:**\n" + reason, name + " wants to report " + report, event.getUser())) {
                     Timer timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -276,14 +282,14 @@ public class TicketListener extends ListenerAdapter {
                 String name = event.getValue("member").getAsString();
                 String info = event.getValue("info").getAsString();
 
-                if (ticket.createNewTicket(info, name + " wants pardon")) {
+                if (service.createNewTicket(info, name + " wants pardon", event.getUser())) {
                     Timer timer = new Timer();
                     timer.schedule(new TimerTask() {
                         @Override
                         public void run() {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -308,6 +314,8 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         if (event.getName().equals("ticket")) {
+            Ticket ticket;
+            TicketService service;
             Member member = event.getMember();
             switch (event.getSubcommandName()) {
                 case "setup" -> {
@@ -340,21 +348,22 @@ public class TicketListener extends ListenerAdapter {
                     }
                 }
                 case "create" -> {
-                    Ticket ticket = new Ticket(event.getUser(), jda, dataSource);
+                    ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "", dataSource);
+                    service = new TicketService(ticket, jda, dataSource);
                     String topic;
                     if (event.getOption("topic") == null) {
                         topic = "";
                     }else {
                         topic = event.getOption("topic").getAsString();
                     }
-                    if (ticket.createNewTicket("", topic)) {
+                    if (service.createNewTicket("", topic, event.getUser())) {
                         Timer timer = new Timer();
                         timer.schedule(new TimerTask() {
                             @Override
                             public void run() {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                                builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTicketChannel().getAsMention(), false);
+                                builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
@@ -376,8 +385,9 @@ public class TicketListener extends ListenerAdapter {
                 case "claim" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (ticket.claim(event.getUser())) {
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                            service = new TicketService(ticket, jda, dataSource);
+                            if (service.claim(event.getUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
@@ -399,7 +409,7 @@ public class TicketListener extends ListenerAdapter {
                                     builder1.setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
                                     builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
-                                    ticket.getTicketChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                                    ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                                 } catch (IOException e) {
                                     log.error("Failed reading File", e);
                                 }
@@ -439,8 +449,9 @@ public class TicketListener extends ListenerAdapter {
                 case "add" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (ticket.addUser(event.getOption("member").getAsUser())) {
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                            service = new TicketService(ticket, jda, dataSource);
+                            if (service.addUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
@@ -466,8 +477,9 @@ public class TicketListener extends ListenerAdapter {
                 case "remove" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (ticket.removeUser(event.getOption("member").getAsUser())) {
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                            service = new TicketService(ticket, jda, dataSource);
+                            if (service.removeUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
@@ -493,8 +505,10 @@ public class TicketListener extends ListenerAdapter {
                 case "set-supporter" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (ticket.setSupporter(event.getOption("staff").getAsUser())) {
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                            Member sup = event.getOption("staff").getAsMember();
+                            if (sup.getRoles().contains(jda.getGuildById(Constants.SERVER_ID).getRoleById(Constants.TEAM_ID)) || !sup.getUser().equals(ticket.getSupporter())) {
+                                ticket.setSupporter(event.getOption("staff").getAsUser());
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
@@ -502,7 +516,7 @@ public class TicketListener extends ListenerAdapter {
                                 builder.addField("✅ **New supporter**", event.getOption("staff").getAsUser().getAsMention() + " is the new supporter", false);
 
                                 event.replyEmbeds(builder.build()).queue();
-                            } else {
+                            }else {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false);
@@ -520,18 +534,20 @@ public class TicketListener extends ListenerAdapter {
                 case "set-owner" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (!ticket.hasAccess(member)) {
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+
+                            if (ticket.getChannel().getPermissionOverride(member) == null || ticket.getChannel().getPermissionOverride(member).getDenied().contains(Permission.VIEW_CHANNEL)) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
-                                builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel", false);
+                                builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel, please add them first", false);
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                                 return;
                             }
-
-                            if (ticket.setOwner(event.getOption("member").getAsUser())) {
+                            User owner = event.getOption("member").getAsUser();
+                            if (!owner.equals(ticket.getOwner())) {
+                                ticket.setOwner(owner);
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                 builder.setColor(new Color(63, 226, 69, 255));
@@ -539,7 +555,7 @@ public class TicketListener extends ListenerAdapter {
                                 builder.addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
 
                                 event.replyEmbeds(builder.build()).queue();
-                            } else {
+                            }else {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
                                 builder.addField("❌ **Setting new owner failed**", "This member is already the creator", false);
@@ -557,9 +573,10 @@ public class TicketListener extends ListenerAdapter {
                 case "set-waiting" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
-                            if (!ticket.isWaiting()) {
-                                ticket.toggleWaiting(true);
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+                            service = new TicketService(ticket, jda, dataSource);
+                            if (!ticket.getChannel().getName().contains("\uD83D\uDD50")) {
+                                service.toggleWaiting(true);
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setAuthor(member.getEffectiveName(), null, member.getEffectiveAvatarUrl());
                                 builder.setDescription("Waiting for response.");
@@ -584,7 +601,7 @@ public class TicketListener extends ListenerAdapter {
                 case "set-topic" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
-                            Ticket ticket = new Ticket(event.getMessageChannel().getIdLong(), jda, dataSource);
+                            ticket = TicketData.loadTicket(event.getChannel().getIdLong());
                             ticket.setTopic(event.getOption("topic").getAsString());
 
                             EmbedBuilder builder = new EmbedBuilder();
@@ -608,10 +625,10 @@ public class TicketListener extends ListenerAdapter {
                                 builder1.setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
-                                if (ticket.isClaimed()) {
-                                    ticket.getTicketChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                                if (ticket.getChannel().getTopic().split(" \\| ").length > 2) {
+                                    ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                                 }else {
-                                    ticket.getTicketChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
+                                    ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
                                             Button.danger("ticket-close", "Close")).queue();
                                 }
                             } catch (IOException e) {
@@ -635,117 +652,36 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
-            Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
-            if (ticket.isWaiting()) {
-                ticket.toggleWaiting(false);
+            Ticket ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+            if (ticket.getChannel().getName().contains("\uD83D\uDD50")) {
+                new TicketService(ticket, jda, dataSource).toggleWaiting(false);
             }
 
-            File transcript = ticket.getTranscript();
             String content = event.getMessageId() + "} "
                     + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                     + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
                     + ":>>> " + event.getMessage().getContentDisplay();
-            try {
-                try {
-                    new File("./GreevTickets/transcripts").mkdirs();
-                    if (transcript.createNewFile()) {
-                        BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
-                        writer.write("Transcript of ticket #" + ticket.getId());
-                        writer.newLine();
-                        writer.close();
-                    }
-                } catch (IOException e) {
-                    log.error("Could not create transcript", e);
-                }
 
-                BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
-                writer.write(content);
-                writer.newLine();
-                writer.close();
-            } catch (IOException e) {
-                log.error("Could not write in file", e);
-            }
+            Transcript transcript = new Transcript(ticket);
+            transcript.addMessage(content);
         }
     }
 
     @Override
     public void onMessageDelete(@NotNull MessageDeleteEvent event) {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-")) {
-            Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
-            File transcript = ticket.getTranscript();
-            File temp = new File("./GreevTickets/transcripts/" + ticket.getId() + ".temp");
-
-            try {
-                temp.createNewFile();
-                BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                BufferedReader reader = new BufferedReader(new FileReader(transcript));
-                List<String> lines = reader.lines().toList();
-                reader.close();
-
-                for (String line : lines) {
-                    if (line.contains(event.getMessageId())) {
-                        String log = null;
-                        try {
-                            log = line.replace(":>>> " + line.split(":>>> ")[1], ":>>> ~~" + line.split(":>>> ")[1] + "~~");
-                        } catch (ArrayIndexOutOfBoundsException e) {
-                            return;
-                        }
-                        writer.write(log);
-                        writer.newLine();
-                    } else {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                }
-                writer.close();
-                transcript.delete();
-                temp.renameTo(transcript);
-            } catch (IOException e) {
-                log.error("Could not read file", e);
-            }
+            Ticket ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+            Transcript transcript = new Transcript(ticket);
+            transcript.deleteMessage(event.getMessageId());
         }
     }
 
     @Override
     public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
-            Ticket ticket = new Ticket(event.getChannel().getIdLong(), jda, dataSource);
-            File transcript = ticket.getTranscript();
-            File temp = new File("./GreevTickets/transcripts/" + ticket.getId() + ".temp");
-
-            try {
-                temp.createNewFile();
-                BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                BufferedReader reader = new BufferedReader(new FileReader(transcript));
-                List<String> lines = reader.lines().toList();
-                reader.close();
-                String msgID = event.getMessage().getId();
-                int edits = 1;
-
-                for (String line : lines) {
-                    if (line.split("}")[0].equals(msgID)) {
-                        if (line.split("~edit-").length > 1) {
-                            edits += Integer.parseInt(line.split("~edit-")[line.split("~edit-").length - 1].substring(0, 1));
-                        }
-                        String message;
-                        if (edits == 1) {
-                            message = "~original~: " + line.split(":>>> ")[1] + " | ~edit-1~:>> " + event.getMessage().getContentDisplay();
-                        } else {
-                            message = line.split("~edit-" + edits)[0].split(":>>> ")[1] + "  ~edit-" + edits + "~:>> " + event.getMessage().getContentDisplay();
-                        }
-                        writer.write(line.split(":>>> ")[0] + ":>>> " + message);
-                        writer.newLine();
-                    } else {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                }
-                writer.close();
-                transcript.delete();
-                temp.renameTo(transcript);
-            } catch (IOException e) {
-                log.error("Could not read file", e);
-            }
+            Ticket ticket = TicketData.loadTicket(event.getChannel().getIdLong());
+            Transcript transcript = new Transcript(ticket);
+            transcript.editMessage(event.getMessageId(), event.getMessage().getContentDisplay());
         }
     }
 }

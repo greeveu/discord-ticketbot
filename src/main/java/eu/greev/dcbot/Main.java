@@ -3,6 +3,7 @@ package eu.greev.dcbot;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import eu.greev.dcbot.ticketsystem.TicketListener;
+import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
@@ -34,11 +35,11 @@ import java.util.stream.Collectors;
 public class Main extends ListenerAdapter {
     private static DataSource dataSource;
 
-    public static void main(String[] args) throws InterruptedException, LoginException, IOException, SQLException {
+    public static void main(String[] args) throws InterruptedException, LoginException, IOException {
         PropertyConfigurator.configure("./GreevTickets/log4j.properties");
         initDatasource();
 
-        YamlFile config = new YamlFile("./GreevTickets/ID.yml");
+        YamlFile config = new YamlFile("./GreevTickets/token.yml");
         config.load();
         JDA jda;
         jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.values()))
@@ -66,11 +67,12 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))).queue();
+        new TicketData(jda, dataSource);
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
 
     private static void initDatasource() {
-        new File("./GreevTickets").mkdirs();
+        new File("./GreevTickets/transcripts").mkdirs();
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
         HikariDataSource dataSource = new HikariDataSource(config);
