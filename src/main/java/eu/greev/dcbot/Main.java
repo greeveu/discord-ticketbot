@@ -102,7 +102,7 @@ public class Main extends ListenerAdapter {
                  PreparedStatement stmt = conn.prepareStatement(query)) {
                 stmt.execute();
             } catch (SQLException e) {
-                log.error("Bot could not start, since the setting up database was not successful", e);
+                log.error("Bot could not start, since setting up database was not successful", e);
                 System.exit(1);
             }
         }

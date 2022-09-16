@@ -9,8 +9,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.PermissionOverride;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.FileUpload;
 
@@ -38,6 +38,7 @@ public class TicketService {
         this.ticket = ticket;
         this.jda = jda;
         this.guild = jda.getGuildById(Constants.SERVER_ID);
+        ticketChannel = ticket.getChannel();
     }
 
     public boolean createNewTicket(String info, String topic, User owner) {
@@ -47,26 +48,31 @@ public class TicketService {
                 if (TicketData.loadTicket(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "")).getOwner().equals(owner)) return false;
             }
         }
+
         if (topic.equals("")) topic = "No topic given";
-        ticket.setTopic(topic);
-        ticket.setOwner(owner);
 
-        try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                "INSERT INTO tickets(ticketID) VALUES(?)"
-        )) {
-            statement.setString(1, ticket.getId());
-            statement.execute();
-        } catch (SQLException e) {
-            log.error(ticket.getId() + ": Could not set ticketID", e);
-        }
-
+        String finalTopic = topic;
         guild.createTextChannel("ticket-" + (TicketData.getCurrentTickets().size() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(Constants.TEAM_ID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .queue(success -> {
+                    try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
+                            "INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)"
+                    )) {
+                        statement.setString(1, ticket.getId());
+                        statement.setString(2, success.getId());
+                        statement.setString(3, owner.getId());
+                        statement.execute();
+                    } catch (SQLException e) {
+                        log.error(ticket.getId() + ": Could not initialize ticket", e);
+                    }
                     ticketChannel = guild.getTextChannelById(success.getIdLong());
+                    ticket.setChannel(ticketChannel);
+                    ticket.setOwner(owner);
+                    ticket.setTopic(finalTopic);
+
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setColor(new Color(63,226,69,255));
                     builder.setDescription("Hello there, " + owner.getAsMention() + "! " + """
@@ -85,7 +91,10 @@ public class TicketService {
                                     EmbedBuilder builder1 = new EmbedBuilder();
                                     builder1.setColor(new Color(63,226,69,255));
                                     builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                    builder1.setDescription("If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below\nThis message will delete itself after this minute");
+                                    builder1.setDescription("""
+                                            If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below
+                                            This message will delete itself after this minute
+                                            """);
 
                                     if (!info.equals("")) {
                                         EmbedBuilder infoBuilder = new EmbedBuilder();

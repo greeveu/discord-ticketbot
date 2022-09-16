@@ -8,7 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
@@ -88,10 +92,10 @@ public class TicketListener extends ListenerAdapter {
                             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 } else {
-                    event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                    event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                 }
             }
             case "ticket-close" -> {
@@ -105,10 +109,10 @@ public class TicketListener extends ListenerAdapter {
                                 .setEphemeral(true)
                                 .queue();
                     } else {
-                        event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 } else {
-                    event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                    event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                 }
             }
             case "ticket-create-pardon" -> {
@@ -188,7 +192,7 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
-        final Ticket ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "", dataSource);
+        final Ticket ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "");
         final TicketService service = new TicketService(ticket, jda, dataSource);
         switch (event.getModalId()) {
             case "custom" -> {
@@ -324,7 +328,7 @@ public class TicketListener extends ListenerAdapter {
                         builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                         builder.addField(new MessageEmbed.Field("**Support request**", """
                                 You have questions or a problem?
-                                Just click the one of the buttons below or use </ticket create:1007234722805592126> somewhere else.
+                                Just click the one of the buttons below or use </ticket create:1013502082629767238> somewhere else.
                                 We will try to handle your ticket as soon as possible.
                                 """, false));
                         builder.setColor(new Color(63, 226, 69, 255));
@@ -344,11 +348,11 @@ public class TicketListener extends ListenerAdapter {
 
                         event.replyEmbeds(builder1.build()).setEphemeral(true).queue();
                     } else {
-                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "create" -> {
-                    ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "", dataSource);
+                    ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "");
                     service = new TicketService(ticket, jda, dataSource);
                     String topic;
                     if (event.getOption("topic") == null) {
@@ -423,10 +427,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "close" -> {
@@ -440,10 +444,10 @@ public class TicketListener extends ListenerAdapter {
                                     .setEphemeral(true)
                                     .queue();
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "add" -> {
@@ -468,10 +472,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "remove" -> {
@@ -496,10 +500,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "set-supporter" -> {
@@ -525,10 +529,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "set-owner" -> {
@@ -564,10 +568,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "set-waiting" -> {
@@ -592,10 +596,10 @@ public class TicketListener extends ListenerAdapter {
                                 event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                             }
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
                 case "set-topic" -> {
@@ -636,10 +640,10 @@ public class TicketListener extends ListenerAdapter {
                             }
                             event.replyEmbeds(builder.build()).queue();
                         } else {
-                            event.replyEmbeds(wrongChannel.build()).setEphemeral(true).queue();
+                            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                         }
                     } else {
-                        event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+                        event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
                     }
                 }
             }

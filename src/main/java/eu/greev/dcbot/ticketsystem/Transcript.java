@@ -10,10 +10,11 @@ import java.util.List;
 @Slf4j
 public class Transcript {
     private final String id;
-    @Getter private File transcript;
+    @Getter private final File transcript;
 
     public Transcript(Ticket ticket) {
         id = ticket.getId();
+        transcript = new File("./GreevTickets/transcripts/" + id + ".txt");
         try {
             if (transcript.createNewFile()) {
                 BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
@@ -21,7 +22,6 @@ public class Transcript {
                 writer.newLine();
                 writer.close();
             }
-            transcript = new File("GreevTickets/transcripts/" + id + ".txt");
         } catch (IOException e) {
             log.error("Could not create transcript", e);
         }

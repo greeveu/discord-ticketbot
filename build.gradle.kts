@@ -13,10 +13,10 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion:JDA:5.0.0-alpha.18")
+    implementation("net.dv8tion:JDA:5.0.0-alpha.19")
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.slf4j:slf4j-log4j12:2.0.0")
-    implementation("org.xerial:sqlite-jdbc:3.39.2.1")
+    implementation("org.xerial:sqlite-jdbc:3.39.3.0")
     implementation("org.apache.logging.log4j:log4j-api:2.18.0")
     implementation("org.apache.logging.log4j:log4j-core:2.18.0")
     implementation("me.carleslc.Simple-YAML:Simple-Yaml:1.8")

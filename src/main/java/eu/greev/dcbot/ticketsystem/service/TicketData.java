@@ -25,17 +25,17 @@ public class TicketData {
     }
 
     public static Ticket loadTicket(String ticketID) {
-        Ticket ticket = new Ticket(ticketID, dataSource);
+        Ticket ticket = new Ticket(ticketID);
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT * FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticket.getId());
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                try {
-                    jda.retrieveUserById(resultSet.getString("owner")).complete();
+                jda.retrieveUserById(resultSet.getString("owner")).complete();
+                if (resultSet.getString("supporter") != null) {
                     jda.retrieveUserById(resultSet.getString("supporter")).complete();
-                } catch (ErrorResponseException ignore) {}
+                }
                 ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
                 ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
                 ticket.setTopic(resultSet.getString("topic"));
@@ -49,17 +49,17 @@ public class TicketData {
     }
 
     public static Ticket loadTicket(long ticketChannelID) {
-        Ticket ticket = new Ticket(getTicketIdByChannelId(Long.toString(ticketChannelID)), dataSource);
+        Ticket ticket = new Ticket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
         try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
                 "SELECT * FROM tickets WHERE ticketID = ?"
         )) {
             statement.setString(1, ticket.getId());
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                try {
-                    jda.retrieveUserById(resultSet.getString("owner")).complete();
+                jda.retrieveUserById(resultSet.getString("owner")).complete();
+                if (resultSet.getString("supporter") != null) {
                     jda.retrieveUserById(resultSet.getString("supporter")).complete();
-                } catch (ErrorResponseException ignore) {}
+                }
                 ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
                 ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
                 ticket.setTopic(resultSet.getString("topic"));
@@ -100,5 +100,21 @@ public class TicketData {
             log.error(channelID + ": Could not get ticketID", e);
         }
         return "";
+    }
+
+    public static void saveTicket(Ticket ticket) {
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement(
+                "UPDATE tickets SET channelID=?, topic=?, owner=?, supporter=?, involved=? WHERE ticketID =?")) {
+            statement.setString(1, ticket.getChannel() != null ? ticket.getChannel().getId() : "");
+            statement.setString(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given");
+            statement.setString(3, ticket.getOwner().getId());
+            statement.setString(4, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "");
+            statement.setString(5, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
+                    "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""));
+            statement.setString(6, ticket.getId());
+            statement.execute();
+        } catch (SQLException e) {
+            log.error(ticket.getId() + ": Could not save ticket", e);
+        }
     }
 }
