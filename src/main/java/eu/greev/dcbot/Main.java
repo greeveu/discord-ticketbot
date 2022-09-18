@@ -1,7 +1,5 @@
 package eu.greev.dcbot;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.utils.Constants;
@@ -18,14 +16,12 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.apache.log4j.PropertyConfigurator;
+import org.jdbi.v3.core.Handle;
+import org.jdbi.v3.core.Jdbi;
 import org.simpleyaml.configuration.file.YamlFile;
+import org.sqlite.SQLiteDataSource;
 
-import javax.security.auth.login.LoginException;
-import javax.sql.DataSource;
 import java.io.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -33,9 +29,9 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class Main extends ListenerAdapter {
-    private static DataSource dataSource;
+    private static Jdbi jdbi;
 
-    public static void main(String[] args) throws InterruptedException, LoginException, IOException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure("./GreevTickets/log4j.properties");
         initDatasource();
 
@@ -49,7 +45,7 @@ public class Main extends ListenerAdapter {
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
         jda.awaitReady();
-        jda.addEventListener(new Main(), new TicketListener(jda, dataSource));
+        jda.addEventListener(new Main(), new TicketListener(jda, jdbi));
         jda.getGuildById(Constants.SERVER_ID).updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("setup", "Setup the System"))
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
@@ -67,27 +63,15 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))).queue();
-        new TicketData(jda, dataSource);
+        new TicketData(jda, jdbi);
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
 
     private static void initDatasource() {
-        new File("./GreevTickets/transcripts").mkdirs();
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl("jdbc:sqlite:./GreevTickets/tickets.db");
-        HikariDataSource dataSource = new HikariDataSource(config);
-        Main.dataSource = dataSource;
+        SQLiteDataSource ds = new SQLiteDataSource();
+        ds.setUrl("jdbc:sqlite:./GreevTickets/tickets.db");
+        jdbi = Jdbi.create(ds);
 
-        try {
-            testDataSource(dataSource);
-            initDb();
-        } catch (SQLException e) {
-            log.error("Bot could not start, since the database connection was not successful", e);
-            System.exit(1);
-        }
-    }
-
-    private static void initDb() {
         String setup = "";
         try (InputStream in = Main.class.getClassLoader().getResourceAsStream("dbsetup.sql")) {
             setup = new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n"));
@@ -97,22 +81,7 @@ public class Main extends ListenerAdapter {
         }
         String[] queries = setup.split(";");
         for (String query : queries) {
-            if (query.isBlank()) continue;
-            try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.execute();
-            } catch (SQLException e) {
-                log.error("Bot could not start, since setting up database was not successful", e);
-                System.exit(1);
-            }
-        }
-    }
-
-    private static void testDataSource(DataSource dataSource) throws SQLException {
-        try (Connection conn = dataSource.getConnection()) {
-            if (!conn.isValid(1000)) {
-                throw new SQLException("Could not establish database connection.");
-            }
+            jdbi.withHandle(h -> h.createUpdate(query).execute());
         }
     }
 }

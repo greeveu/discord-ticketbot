@@ -25,10 +25,10 @@ import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import org.jdbi.v3.core.Jdbi;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
-import javax.sql.DataSource;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
@@ -43,13 +43,13 @@ import java.util.TimerTask;
 @Slf4j
 public class TicketListener extends ListenerAdapter {
     private final Role staff;
-    private final DataSource dataSource;
+    private final Jdbi jdbi;
     private final JDA jda;
     private final EmbedBuilder missingPerm;
     private final EmbedBuilder wrongChannel;
 
-    public TicketListener(JDA jda, DataSource dataSource) {
-        this.dataSource = dataSource;
+    public TicketListener(JDA jda, Jdbi jdbi) {
+        this.jdbi = jdbi;
         this.jda = jda;
         long serverID = Constants.SERVER_ID;
         staff = jda.getGuildById(serverID).getRoleById(Constants.TEAM_ID);
@@ -74,7 +74,7 @@ public class TicketListener extends ListenerAdapter {
                 if (event.getMember().getRoles().contains(staff)) {
                     if (event.getMessageChannel().getName().contains("ticket-")) {
                         ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                        service = new TicketService(ticket, jda, dataSource);
+                        service = new TicketService(ticket, jda, jdbi);
                         if (service.claim(event.getUser())) {
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
@@ -173,10 +173,10 @@ public class TicketListener extends ListenerAdapter {
                         .build();
                 event.replyModal(modal).queue();
             }
-            case "ticket-confirm" ->  new TicketService(TicketData.loadTicket(event.getChannel().getIdLong()), jda, dataSource).closeTicket(false);
+            case "ticket-confirm" ->  new TicketService(TicketData.loadTicket(event.getChannel().getIdLong()), jda, jdbi).closeTicket(false);
             case "ticket-nevermind" -> {
                 ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                service = new TicketService(ticket, jda, dataSource);
+                service = new TicketService(ticket, jda, jdbi);
                 if (ticket.getOwner().equals(event.getUser())) {
                     service.closeTicket(true);
                 }else {
@@ -193,7 +193,7 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
         final Ticket ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "");
-        final TicketService service = new TicketService(ticket, jda, dataSource);
+        final TicketService service = new TicketService(ticket, jda, jdbi);
         switch (event.getModalId()) {
             case "custom" -> {
                 String topic = event.getValue("topic").getAsString();
@@ -353,7 +353,7 @@ public class TicketListener extends ListenerAdapter {
                 }
                 case "create" -> {
                     ticket = new Ticket((TicketData.getCurrentTickets().size() + 1) + "");
-                    service = new TicketService(ticket, jda, dataSource);
+                    service = new TicketService(ticket, jda, jdbi);
                     String topic;
                     if (event.getOption("topic") == null) {
                         topic = "";
@@ -390,7 +390,7 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                            service = new TicketService(ticket, jda, dataSource);
+                            service = new TicketService(ticket, jda, jdbi);
                             if (service.claim(event.getUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
@@ -454,7 +454,7 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                            service = new TicketService(ticket, jda, dataSource);
+                            service = new TicketService(ticket, jda, jdbi);
                             if (service.addUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
@@ -482,7 +482,7 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                            service = new TicketService(ticket, jda, dataSource);
+                            service = new TicketService(ticket, jda, jdbi);
                             if (service.removeUser(event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
@@ -578,7 +578,7 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = TicketData.loadTicket(event.getChannel().getIdLong());
-                            service = new TicketService(ticket, jda, dataSource);
+                            service = new TicketService(ticket, jda, jdbi);
                             if (!ticket.getChannel().getName().contains("\uD83D\uDD50")) {
                                 service.toggleWaiting(true);
                                 EmbedBuilder builder = new EmbedBuilder();
@@ -658,7 +658,7 @@ public class TicketListener extends ListenerAdapter {
         if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
             Ticket ticket = TicketData.loadTicket(event.getChannel().getIdLong());
             if (ticket.getChannel().getName().contains("\uD83D\uDD50")) {
-                new TicketService(ticket, jda, dataSource).toggleWaiting(false);
+                new TicketService(ticket, jda, jdbi).toggleWaiting(false);
             }
 
             String content = event.getMessageId() + "} "

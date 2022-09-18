@@ -13,15 +13,12 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.FileUpload;
+import org.jdbi.v3.core.Jdbi;
 
-import javax.sql.DataSource;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -29,12 +26,12 @@ import java.util.concurrent.TimeUnit;
 public class TicketService {
     private final Ticket ticket;
     private final JDA jda;
-    private final DataSource dataSource;
+    private final Jdbi jdbi;
     private final Guild guild;
     private TextChannel ticketChannel;
 
-    public TicketService(Ticket ticket, JDA jda, DataSource dataSource) {
-        this.dataSource = dataSource;
+    public TicketService(Ticket ticket, JDA jda, Jdbi jdbi) {
+        this.jdbi = jdbi;
         this.ticket = ticket;
         this.jda = jda;
         this.guild = jda.getGuildById(Constants.SERVER_ID);
@@ -58,20 +55,21 @@ public class TicketService {
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .queue(success -> {
-                    try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                            "INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)"
-                    )) {
-                        statement.setString(1, ticket.getId());
-                        statement.setString(2, success.getId());
-                        statement.setString(3, owner.getId());
-                        statement.execute();
-                    } catch (SQLException e) {
-                        log.error(ticket.getId() + ": Could not initialize ticket", e);
-                    }
                     ticketChannel = guild.getTextChannelById(success.getIdLong());
                     ticket.setChannel(ticketChannel);
                     ticket.setOwner(owner);
                     ticket.setTopic(finalTopic);
+                    if (ticket.getSupporter() == null) {
+                        ticket.getChannel().getManager().setTopic(owner.getAsMention() + " | " + ticket.getTopic()).queue();
+                    }else {
+                        ticket.getChannel().getManager().setTopic(owner.getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
+                    }
+
+                    jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)")
+                            .bind(0, ticket.getId())
+                            .bind(1, ticketChannel.getId())
+                            .bind(2, owner.getId())
+                            .execute());
 
                     EmbedBuilder builder = new EmbedBuilder();
                     builder.setColor(new Color(63,226,69,255));
@@ -127,14 +125,8 @@ public class TicketService {
         Transcript transcript = new Transcript(ticket);
         if (wasAccident) {
             ticketChannel.delete().queue();
-            try (Connection conn = dataSource.getConnection(); PreparedStatement statement = conn.prepareStatement(
-                    "DELETE FROM tickets WHERE ticketID=?"
-            )) {
-                statement.setString(1, ticket.getId());
-                statement.execute();
-            } catch (SQLException e) {
-                log.error(ticket.getId() + ": Could not delete entry", e);
-            }
+            jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
+
             transcript.getTranscript().delete();
         }else {
             builder.setTitle("Ticket " + ticket.getId());
@@ -152,6 +144,11 @@ public class TicketService {
         if (supporter != ticket.getOwner()) {
             ticketChannel.getManager().setTopic(ticket.getOwner() + " | " + ticket.getTopic() + " | " + supporter.getAsMention()).setName("✓-ticket-" + ticket.getId()).queue();
             ticket.setSupporter(supporter);
+            if (ticket.getSupporter() == null) {
+                ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
+            }else {
+                ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
+            }
 
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(new Color(63,226,69,255));

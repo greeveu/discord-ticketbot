@@ -23,17 +23,17 @@ public class Ticket {
 
     public void setOwner(User owner) {
         this.owner = owner;
-        updateTopic();
+        TicketData.saveTicket(this);
     }
 
     public void setSupporter(User supporter) {
         this.supporter = supporter;
-        updateTopic();
+        TicketData.saveTicket(this);
     }
 
     public void setTopic(String topic) {
         this.topic = topic;
-        updateTopic();
+        TicketData.saveTicket(this);
     }
 
     public void setInvolved(List<String> involved) {
@@ -52,15 +52,6 @@ public class Ticket {
 
     public void removeInvolved(String involved) {
         this.involved.remove(involved);
-        TicketData.saveTicket(this);
-    }
-
-    private void updateTopic() {
-        if (supporter == null) {
-            channel.getManager().setTopic(owner.getAsMention() + " | " + topic).queue();
-        }else {
-            channel.getManager().setTopic(owner.getAsMention() + " | " + topic + " | " + supporter.getAsMention()).queue();
-        }
         TicketData.saveTicket(this);
     }
 }

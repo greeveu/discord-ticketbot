@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     implementation("net.dv8tion:JDA:5.0.0-alpha.19")
-    implementation("com.zaxxer:HikariCP:5.0.1")
+    implementation("org.jdbi:jdbi3-oracle12:3.32.0")
     implementation("org.slf4j:slf4j-log4j12:2.0.0")
     implementation("org.xerial:sqlite-jdbc:3.39.3.0")
     implementation("org.apache.logging.log4j:log4j-api:2.18.0")

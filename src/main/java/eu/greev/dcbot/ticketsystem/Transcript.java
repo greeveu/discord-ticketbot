@@ -14,6 +14,7 @@ public class Transcript {
 
     public Transcript(Ticket ticket) {
         id = ticket.getId();
+        new File("./GreevTickets/transcripts").mkdirs();
         transcript = new File("./GreevTickets/transcripts/" + id + ".txt");
         try {
             if (transcript.createNewFile()) {
