@@ -2,7 +2,9 @@ package eu.greev.dcbot;
 
 import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
+import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Constants;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class Main extends ListenerAdapter {
     private static Jdbi jdbi;
+    @Getter private static TicketService ticketService;
 
     public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure("./GreevTickets/log4j.properties");
@@ -36,15 +39,16 @@ public class Main extends ListenerAdapter {
 
         YamlFile config = new YamlFile("./GreevTickets/token.yml");
         config.load();
-        JDA jda;
-        jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.values()))
+
+        JDA jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
                 .setActivity(Activity.listening(" ticket commands."))
-                .setEnabledIntents(List.of(GatewayIntent.values()))
                 .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
         jda.awaitReady();
-        jda.addEventListener(new Main(), new TicketListener(jda, jdbi));
+        TicketData ticketData = new TicketData(jda, jdbi);
+        ticketService = new TicketService(jda, jdbi, ticketData);
+        jda.addEventListener(new Main(), new TicketListener(jda, ticketService, ticketData));
         jda.getGuildById(Constants.SERVER_ID).updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("setup", "Setup the System"))
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
@@ -62,10 +66,8 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))).queue();
-        new TicketData(jda, jdbi);
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
-
 
     //just a test method: will be removed after testing
     private static void initDatasource() {

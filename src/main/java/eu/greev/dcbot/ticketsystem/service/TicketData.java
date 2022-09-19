@@ -11,16 +11,16 @@ import java.util.List;
 
 @Slf4j
 public class TicketData {
-    private static Jdbi jdbi;
-    private static JDA jda;
+    private final Jdbi jdbi;
+    private final JDA jda;
 
     public TicketData(JDA jda, Jdbi jdbi) {
-        TicketData.jdbi = jdbi;
-        TicketData.jda = jda;
+        this.jdbi = jdbi;
+        this.jda = jda;
     }
 
-    public static Ticket loadTicket(String ticketID) {
-        Ticket ticket = new Ticket(ticketID);
+    protected Ticket loadTicket(String ticketID) {
+        Ticket ticket = new Ticket(ticketID, this);
 
         jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
                 .bind(0, ticket.getId())
@@ -40,41 +40,29 @@ public class TicketData {
         return ticket;
     }
 
-    public static Ticket loadTicket(long ticketChannelID) {
-        Ticket ticket = new Ticket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
-
-        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
-                .bind(0, ticket.getId())
-                .map((resultSet, index, ctx) -> {
-                    jda.retrieveUserById(resultSet.getString("owner")).complete();
-                    ticket.setChannel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")));
-                    ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
-                    ticket.setTopic(resultSet.getString("topic"));
-                    ticket.setInvolved(new  ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
-                    if (!resultSet.getString("supporter").equals("")) {
-                        jda.retrieveUserById(resultSet.getString("supporter")).complete();
-                        ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
-                    }
-                    return "";
-                })
-                .first());
-        return ticket;
+    protected Ticket loadTicket(long ticketChannelID) {
+        return this.loadTicket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
     }
 
-    public static List<String> getCurrentTickets() {
+    /*public List<String> getCurrentTickets() {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets")
                 .mapTo(String.class)
                 .list());
+    }*/
+
+    public Integer getLastTicketId() {
+        return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets ORDER BY ticketID DESC LIMIT 1")
+                .mapTo(Integer.class).findFirst().orElse(0));
     }
 
-    public static String getTicketIdByChannelId(String channelID) {
+    public String getTicketIdByChannelId(String channelID) {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE channelID = ?")
                 .bind(0, channelID)
                 .mapTo(String.class)
                 .first());
     }
 
-    public static void saveTicket(Ticket ticket) {
+    public void saveTicket(Ticket ticket) {
         jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, topic=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
                 .bind(0, ticket.getChannel() != null ? ticket.getChannel().getId() : "")
                 .bind(1, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")

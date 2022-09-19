@@ -16,29 +16,31 @@ public class Ticket {
     @Getter private ArrayList<String> involved = new ArrayList<>();
     @Getter private final String id;
     @Getter private TextChannel channel;
+    private final TicketData ticketData;
 
-    public Ticket(String id) {
+    public Ticket(String id, TicketData ticketData) {
         this.id = id;
+        this.ticketData = ticketData;
     }
 
     public void setOwner(User owner) {
         this.owner = owner;
-        TicketData.saveTicket(this);
+        ticketData.saveTicket(this);
     }
 
     public void setSupporter(User supporter) {
         this.supporter = supporter;
-        TicketData.saveTicket(this);
+        ticketData.saveTicket(this);
     }
 
     public void setTopic(String topic) {
         this.topic = topic;
-        TicketData.saveTicket(this);
+        ticketData.saveTicket(this);
     }
 
     public void setInvolved(ArrayList<String> involved) {
         this.involved = involved;
-        TicketData.saveTicket(this);
+        ticketData.saveTicket(this);
     }
 
     public void setChannel(TextChannel channel) { this.channel = channel; }
@@ -46,13 +48,13 @@ public class Ticket {
     public void addInvolved(String involved) {
         if (!this.involved.contains(involved)) {
             this.involved.add(involved);
-            TicketData.saveTicket(this);
+            ticketData.saveTicket(this);
         }
     }
 
     public void removeInvolved(String involved) {
         if (this.involved.remove(involved)) {
-            TicketData.saveTicket(this);
+            ticketData.saveTicket(this);
         }
     }
 }

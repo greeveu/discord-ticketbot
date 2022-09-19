@@ -19,43 +19,46 @@ import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class TicketService {
-    private final Ticket ticket;
     private final JDA jda;
     private final Jdbi jdbi;
     private final Guild guild;
-    private TextChannel ticketChannel;
+    private final TicketData ticketData;
+    private final Set<Ticket> allCurrentTickets = new HashSet<>();
 
-    public TicketService(Ticket ticket, JDA jda, Jdbi jdbi) {
+    public TicketService(JDA jda, Jdbi jdbi, TicketData ticketData) {
         this.jdbi = jdbi;
-        this.ticket = ticket;
         this.jda = jda;
         this.guild = jda.getGuildById(Constants.SERVER_ID);
-        ticketChannel = ticket.getChannel();
+        this.ticketData = ticketData;
     }
 
     public boolean createNewTicket(String info, String topic, User owner) {
+        Ticket ticket = new Ticket((ticketData.getLastTicketId() + 1) + "", ticketData);
         Guild guild = jda.getGuildById(Constants.SERVER_ID);
         for (TextChannel textChannel : guild.getTextChannels()) {
             if (textChannel.getName().contains("ticket-")) {
-                if (TicketData.loadTicket(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "")).getOwner().equals(owner)) return false;
+                if (ticketData.loadTicket(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "")).getOwner().equals(owner)) return false;
             }
         }
 
         if (topic.equals("")) topic = "No topic given";
 
         String finalTopic = topic;
-        guild.createTextChannel("ticket-" + (TicketData.getCurrentTickets().size() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
+        guild.createTextChannel("ticket-" + (ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(Constants.TEAM_ID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .queue(success -> {
-                    ticketChannel = guild.getTextChannelById(success.getIdLong());
+                    TextChannel ticketChannel = guild.getTextChannelById(success.getIdLong());
                     ticket.setChannel(ticketChannel);
                     ticket.setOwner(owner);
                     ticket.setTopic(finalTopic);
@@ -81,50 +84,46 @@ public class TicketService {
                     builder.setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
                     builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
-                    success.sendMessage(owner.getAsMention() + " has created a new ticket").queue(s -> {
-                        success.sendMessageEmbeds(builder.build())
-                                .setActionRow(Button.primary("ticket-claim", "Claim"),
-                                        Button.danger("ticket-close", "Close"))
-                                .queue(q -> {
-                                    EmbedBuilder builder1 = new EmbedBuilder();
-                                    builder1.setColor(new Color(63,226,69,255));
-                                    builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                    builder1.setDescription("""
-                                            If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
-                                            This message will delete itself after this minute.
-                                            """);
+                    success.sendMessage(owner.getAsMention() + " has created a new ticket").queue(s -> success.sendMessageEmbeds(builder.build())
+                            .setActionRow(Button.primary("ticket-claim", "Claim"),
+                                    Button.danger("ticket-close", "Close"))
+                            .queue(q -> {
+                                EmbedBuilder builder1 = new EmbedBuilder();
+                                builder1.setColor(new Color(63,226,69,255));
+                                builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                                builder1.setDescription("""
+                                        If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
+                                        This message will delete itself after this minute.
+                                        """);
 
-                                    if (!info.equals("")) {
-                                        EmbedBuilder infoBuilder = new EmbedBuilder();
-                                        if (ticket.getSupporter() != null) {
-                                            infoBuilder.setAuthor(ticket.getSupporter().getName(), null, ticket.getSupporter().getEffectiveAvatarUrl());
-                                        }
-                                        infoBuilder.setColor(new Color(63,226,69,255));
-                                        infoBuilder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                        infoBuilder.setTitle("**Extra**");
-                                        infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
-                                        success.sendMessageEmbeds(infoBuilder.build()).submit();
+                                if (!info.equals("")) {
+                                    EmbedBuilder infoBuilder = new EmbedBuilder();
+                                    if (ticket.getSupporter() != null) {
+                                        infoBuilder.setAuthor(ticket.getSupporter().getName(), null, ticket.getSupporter().getEffectiveAvatarUrl());
                                     }
+                                    infoBuilder.setColor(new Color(63,226,69,255));
+                                    infoBuilder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                                    infoBuilder.setTitle("**Extra**");
+                                    infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
+                                    success.sendMessageEmbeds(infoBuilder.build()).submit();
+                                }
 
-                                    success.sendMessageEmbeds(builder1.build())
-                                            .setActionRow(Button.danger("ticket-nevermind", "Nevermind!"))
-                                            .queue(suc -> {
-                                                suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {});
-                                            });
+                                success.sendMessageEmbeds(builder1.build())
+                                        .setActionRow(Button.danger("ticket-nevermind", "Nevermind!"))
+                                        .queue(suc -> suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {}));
 
-                                    Transcript transcript = new Transcript(ticket);
-                                    transcript.addMessage(q.getId());
-                                });
-                    });
+                                Transcript transcript = new Transcript(ticket);
+                                transcript.addMessage(q.getId());
+                            }));
                 });
         return true;
     }
 
-    public void closeTicket(boolean wasAccident) {
+    public void closeTicket(Ticket ticket, boolean wasAccident) {
         EmbedBuilder builder = new EmbedBuilder();
         Transcript transcript = new Transcript(ticket);
         if (wasAccident) {
-            ticketChannel.delete().queue();
+            ticket.getChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
 
             transcript.getTranscript().delete();
@@ -136,11 +135,11 @@ public class TicketService {
             ticket.getOwner().openPrivateChannel()
                     .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.clean())))
                     .complete();
-            ticketChannel.delete().queue();
+            ticket.getChannel().delete().queue();
         }
     }
 
-    public boolean claim(User supporter) {
+    public boolean claim(Ticket ticket, User supporter) {
         if (supporter != ticket.getOwner()) {
             ticket.setSupporter(supporter);
             if (ticket.getSupporter() == null) {
@@ -148,7 +147,7 @@ public class TicketService {
             }else {
                 ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
             }
-            ticketChannel.getManager().setName("✓-ticket-" + ticket.getId()).complete();
+            ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).complete();
 
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(new Color(63,226,69,255));
@@ -161,7 +160,7 @@ public class TicketService {
             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
             try {
                 BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()));
-                ticketChannel.editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                ticket.getChannel().editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                 reader.close();
             } catch (IOException e) {
                 log.error("Could not get Embed ID from transcript because", e);
@@ -172,33 +171,45 @@ public class TicketService {
         }
     }
 
-    public void toggleWaiting(boolean waiting) {
+    public void toggleWaiting(Ticket ticket, boolean waiting) {
         if (waiting) {
-            ticketChannel.getManager().setName("\uD83D\uDD50-ticket-" + ticket.getId()).queue();
+            ticket.getChannel().getManager().setName("\uD83D\uDD50-ticket-" + ticket.getId()).queue();
         }else {
-            ticketChannel.getManager().setName("✓-ticket-" + ticket.getId()).queue();
+            ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).queue();
         }
     }
 
-    public boolean addUser(User user) {
-        PermissionOverride permissionOverride = ticketChannel.getPermissionOverride(guild.getMember(user));
+    public boolean addUser(Ticket ticket, User user) {
+        PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
         }else {
-            ticketChannel.upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticket.addInvolved(user.getId());
             return true;
         }
     }
 
-    public boolean removeUser(User user) {
-        PermissionOverride permissionOverride = ticketChannel.getPermissionOverride(guild.getMember(user));
+    public boolean removeUser(Ticket ticket, User user) {
+        PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if (permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
-            ticketChannel.upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticket.removeInvolved(user.getId());
             return true;
         }else {
             return false;
         }
+    }
+
+    public Ticket getTicketByChannelId(long idLong) {
+        Optional<Ticket> optionalTicket = allCurrentTickets.stream()
+                .filter(ticket -> ticket.getChannel().getIdLong() == idLong)
+                .findAny();
+
+        return optionalTicket.orElseGet(() -> {
+            Ticket loadedTicket = ticketData.loadTicket(idLong);
+            allCurrentTickets.add(loadedTicket);
+            return loadedTicket;
+        });
     }
 }
