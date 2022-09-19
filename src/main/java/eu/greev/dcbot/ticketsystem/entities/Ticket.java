@@ -6,14 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
-import java.util.List;
+import java.util.ArrayList;
 
 @Slf4j
 public class Ticket {
     @Getter private User owner;
     @Getter private User supporter;
     @Getter private String topic = "No topic given";
-    @Getter private List<String> involved;
+    @Getter private ArrayList<String> involved = new ArrayList<>();
     @Getter private final String id;
     @Getter private TextChannel channel;
 
@@ -36,7 +36,7 @@ public class Ticket {
         TicketData.saveTicket(this);
     }
 
-    public void setInvolved(List<String> involved) {
+    public void setInvolved(ArrayList<String> involved) {
         this.involved = involved;
         TicketData.saveTicket(this);
     }
@@ -51,7 +51,8 @@ public class Ticket {
     }
 
     public void removeInvolved(String involved) {
-        this.involved.remove(involved);
-        TicketData.saveTicket(this);
+        if (this.involved.remove(involved)) {
+            TicketData.saveTicket(this);
+        }
     }
 }

@@ -630,9 +630,9 @@ public class TicketListener extends ListenerAdapter {
                                 builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
                                 if (ticket.getChannel().getTopic().split(" \\| ").length > 2) {
-                                    ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                                    ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                                 }else {
-                                    ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
+                                    ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
                                             Button.danger("ticket-close", "Close")).queue();
                                 }
                             } catch (IOException e) {
@@ -651,7 +651,7 @@ public class TicketListener extends ListenerAdapter {
     }
 
     /*
-     *Methods to write the transcript
+     *Listeners to handle the transcript
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {

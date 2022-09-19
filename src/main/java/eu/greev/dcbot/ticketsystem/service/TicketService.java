@@ -90,8 +90,8 @@ public class TicketService {
                                     builder1.setColor(new Color(63,226,69,255));
                                     builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                                     builder1.setDescription("""
-                                            If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below
-                                            This message will delete itself after this minute
+                                            If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
+                                            This message will delete itself after this minute.
                                             """);
 
                                     if (!info.equals("")) {
@@ -142,13 +142,13 @@ public class TicketService {
 
     public boolean claim(User supporter) {
         if (supporter != ticket.getOwner()) {
-            ticketChannel.getManager().setTopic(ticket.getOwner() + " | " + ticket.getTopic() + " | " + supporter.getAsMention()).setName("✓-ticket-" + ticket.getId()).queue();
             ticket.setSupporter(supporter);
             if (ticket.getSupporter() == null) {
                 ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
             }else {
                 ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
             }
+            ticketChannel.getManager().setName("✓-ticket-" + ticket.getId()).complete();
 
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(new Color(63,226,69,255));
@@ -157,11 +157,11 @@ public class TicketService {
                             In the mean time, please describe your issue in as much detail as possible! :)
                             """);
             builder.addField("Topic", ticket.getTopic(), false);
-            builder.setAuthor(ticket.getOwner().getName(), ticket.getOwner().getEffectiveAvatarUrl());
+            builder.setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl());
             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
             try {
                 BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()));
-                ticketChannel.editMessageEmbedsById(reader.lines().toList().get(0), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                ticketChannel.editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
                 reader.close();
             } catch (IOException e) {
                 log.error("Could not get Embed ID from transcript because", e);

@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import org.jdbi.v3.core.Jdbi;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -22,19 +23,20 @@ public class TicketData {
         Ticket ticket = new Ticket(ticketID);
 
         jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
-                        .bind(0, ticketID)
-                        .map((resultSet, index, ctx) -> {
-                            jda.retrieveUserById(resultSet.getString("owner")).complete();
-                            if (!resultSet.getString("supporter").equals("")) {
-                                jda.retrieveUserById(resultSet.getString("supporter")).complete();
-                            }
-                            ticket.setChannel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")));
-                            ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
-                            ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
-                            ticket.setTopic(resultSet.getString("topic"));
-                            ticket.setInvolved(List.of(resultSet.getString("involved").split(", ")));
-                            return "aaa";
-                        }).first());
+                .bind(0, ticket.getId())
+                .map((resultSet, index, ctx) -> {
+                    jda.retrieveUserById(resultSet.getString("owner")).complete();
+                    ticket.setChannel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")));
+                    ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
+                    ticket.setTopic(resultSet.getString("topic"));
+                    ticket.setInvolved(new  ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
+                    if (!resultSet.getString("supporter").equals("")) {
+                        jda.retrieveUserById(resultSet.getString("supporter")).complete();
+                        ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
+                    }
+                    return "";
+                })
+                .first());
         return ticket;
     }
 
@@ -45,16 +47,15 @@ public class TicketData {
                 .bind(0, ticket.getId())
                 .map((resultSet, index, ctx) -> {
                     jda.retrieveUserById(resultSet.getString("owner")).complete();
+                    ticket.setChannel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")));
+                    ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
+                    ticket.setTopic(resultSet.getString("topic"));
+                    ticket.setInvolved(new  ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
                     if (!resultSet.getString("supporter").equals("")) {
                         jda.retrieveUserById(resultSet.getString("supporter")).complete();
                         ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
                     }
-
-                    ticket.setChannel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")));
-                    ticket.setOwner(jda.getUserById(resultSet.getString("owner")));
-                    ticket.setTopic(resultSet.getString("topic"));
-                    ticket.setInvolved(List.of(resultSet.getString("involved").split(", ")));
-                    return "aaa";
+                    return "";
                 })
                 .first());
         return ticket;

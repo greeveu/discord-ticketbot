@@ -16,7 +16,6 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.apache.log4j.PropertyConfigurator;
-import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.sqlite.SQLiteDataSource;
@@ -67,6 +66,8 @@ public class Main extends ListenerAdapter {
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
 
+
+    //just a test method: will be removed after testing
     private static void initDatasource() {
         SQLiteDataSource ds = new SQLiteDataSource();
         ds.setUrl("jdbc:sqlite:./GreevTickets/tickets.db");

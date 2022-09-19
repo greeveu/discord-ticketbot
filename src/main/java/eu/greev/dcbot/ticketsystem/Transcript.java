@@ -68,8 +68,8 @@ public class Transcript {
                 }
             }
             writer.close();
-            transcript.delete();
             temp.renameTo(transcript);
+            transcript.delete();
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
         }
@@ -121,7 +121,8 @@ public class Transcript {
                     writer.write("Transcript of ticket: #" + id);
                     writer.newLine();
                     continue;
-                }
+                }else if (lines.get(1).equals(line)) continue;
+
                 String content = line.split("} ")[1];
                 writer.write(content);
                 writer.newLine();
