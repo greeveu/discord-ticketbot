@@ -4,7 +4,6 @@ import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Constants;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -17,6 +16,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.apache.log4j.PropertyConfigurator;
 import org.jdbi.v3.core.Jdbi;
 import org.simpleyaml.configuration.file.YamlFile;
@@ -28,26 +28,27 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//-Dlog4j.configurationFile=./GreevTickets/log4j2.properties
 @Slf4j
 public class Main extends ListenerAdapter {
     private static Jdbi jdbi;
-    @Getter private static TicketService ticketService;
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        PropertyConfigurator.configure("./GreevTickets/log4j.properties");
+        PropertyConfigurator.configure("./GreevTickets/log4j2.properties");
         initDatasource();
 
         YamlFile config = new YamlFile("./GreevTickets/token.yml");
         config.load();
 
         JDA jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
+                .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
                 .setActivity(Activity.listening(" ticket commands."))
                 .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
                 .setStatus(OnlineStatus.ONLINE)
                 .build();
         jda.awaitReady();
         TicketData ticketData = new TicketData(jda, jdbi);
-        ticketService = new TicketService(jda, jdbi, ticketData);
+        TicketService ticketService = new TicketService(jda, jdbi, ticketData);
         jda.addEventListener(new Main(), new TicketListener(jda, ticketService, ticketData));
         jda.getGuildById(Constants.SERVER_ID).updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("setup", "Setup the System"))

@@ -190,24 +190,16 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
-        ticket = new Ticket((ticketData.getLastTicketId() + 1) + "", ticketData);
         switch (event.getModalId()) {
             case "custom" -> {
                 String topic = event.getValue("topic").getAsString();
                 if (ticketService.createNewTicket("", topic, event.getUser())) {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            EmbedBuilder builder = new EmbedBuilder();
-                            builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                            timer.cancel();
-                        }
-                    }, 1000, 50);
+                    ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                 } else {
                     EmbedBuilder builder = new EmbedBuilder();
                     event.getGuild().getTextChannels().forEach(channel -> {
@@ -223,19 +215,12 @@ public class TicketListener extends ListenerAdapter {
             case "complain" -> {
                 String complain = event.getValue("complain").getAsString();
                 if (ticketService.createNewTicket(complain, "Complain", event.getUser())) {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            EmbedBuilder builder = new EmbedBuilder();
-                            builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                            timer.cancel();
-                        }
-                    }, 1000, 50);
+                    ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                 } else {
                     EmbedBuilder builder = new EmbedBuilder();
                     event.getGuild().getTextChannels().forEach(channel -> {
@@ -254,19 +239,12 @@ public class TicketListener extends ListenerAdapter {
                 String reason = event.getValue("reason").getAsString();
 
                 if (ticketService.createNewTicket(name + " wants to report " + report + "\n\n**Reason:**\n" + reason, name + " wants to report " + report, event.getUser())) {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            EmbedBuilder builder = new EmbedBuilder();
-                            builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                            timer.cancel();
-                        }
-                    }, 1000, 50);
+                    ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                 } else {
                     EmbedBuilder builder = new EmbedBuilder();
                     event.getGuild().getTextChannels().forEach(channel -> {
@@ -284,19 +262,12 @@ public class TicketListener extends ListenerAdapter {
                 String info = event.getValue("info").getAsString();
 
                 if (ticketService.createNewTicket(info, name + " wants pardon", event.getUser())) {
-                    Timer timer = new Timer();
-                    timer.schedule(new TimerTask() {
-                        @Override
-                        public void run() {
-                            EmbedBuilder builder = new EmbedBuilder();
-                            builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-                            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                            timer.cancel();
-                        }
-                    }, 1000, 50);
+                    ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+                    EmbedBuilder builder = new EmbedBuilder();
+                    builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+                    builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                 } else {
                     EmbedBuilder builder = new EmbedBuilder();
                     event.getGuild().getTextChannels().forEach(channel -> {
@@ -347,7 +318,6 @@ public class TicketListener extends ListenerAdapter {
                     }
                 }
                 case "create" -> {
-                    ticket = new Ticket((ticketData.getLastTicketId() + 1) + "", ticketData);
                     String topic;
                     if (event.getOption("topic") == null) {
                         topic = "";
@@ -355,19 +325,13 @@ public class TicketListener extends ListenerAdapter {
                         topic = event.getOption("topic").getAsString();
                     }
                     if (ticketService.createNewTicket("", topic, event.getUser())) {
-                        Timer timer = new Timer();
-                        timer.schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                EmbedBuilder builder = new EmbedBuilder();
-                                builder.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-                                builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                        ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+                        EmbedBuilder builder = new EmbedBuilder();
+                        builder.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
+                        builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                        builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
-                                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                                timer.cancel();
-                            }
-                        }, 1000, 50);
+                        event.replyEmbeds(builder.build()).setEphemeral(true).queue();
                     } else {
                         EmbedBuilder builder = new EmbedBuilder();
                         event.getGuild().getTextChannels().forEach(channel -> {

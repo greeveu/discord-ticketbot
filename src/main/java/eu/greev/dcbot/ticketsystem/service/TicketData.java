@@ -34,9 +34,9 @@ public class TicketData {
                         jda.retrieveUserById(resultSet.getString("supporter")).complete();
                         ticket.setSupporter(jda.getUserById(resultSet.getString("supporter")));
                     }
-                    return "";
+                    return "q";
                 })
-                .first());
+                .findFirst());
         return ticket;
     }
 

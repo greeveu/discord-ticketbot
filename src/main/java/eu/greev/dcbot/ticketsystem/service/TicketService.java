@@ -48,80 +48,71 @@ public class TicketService {
                 if (ticketData.loadTicket(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "")).getOwner().equals(owner)) return false;
             }
         }
-
         if (topic.equals("")) topic = "No topic given";
-
-        String finalTopic = topic;
-        guild.createTextChannel("ticket-" + (ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
+        TextChannel ticketChannel = guild.createTextChannel("ticket-" + (ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(Constants.TEAM_ID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
-                .queue(success -> {
-                    TextChannel ticketChannel = guild.getTextChannelById(success.getIdLong());
-                    ticket.setChannel(ticketChannel);
-                    ticket.setOwner(owner);
-                    ticket.setTopic(finalTopic);
-                    if (ticket.getSupporter() == null) {
-                        ticket.getChannel().getManager().setTopic(owner.getAsMention() + " | " + ticket.getTopic()).queue();
-                    }else {
-                        ticket.getChannel().getManager().setTopic(owner.getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
-                    }
+                .complete();
 
-                    jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)")
-                            .bind(0, ticket.getId())
-                            .bind(1, ticketChannel.getId())
-                            .bind(2, owner.getId())
-                            .execute());
+        ticket.setChannel(ticketChannel);
+        ticket.setOwner(owner);
+        ticket.setTopic(topic);
+        allCurrentTickets.add(ticket);
 
-                    EmbedBuilder builder = new EmbedBuilder();
-                    builder.setColor(new Color(63,226,69,255));
-                    builder.setDescription("Hello there, " + owner.getAsMention() + "! " + """
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)")
+                .bind(0, ticket.getId())
+                .bind(1, ticketChannel.getId())
+                .bind(2, owner.getId())
+                .execute());
+
+        EmbedBuilder builder = new EmbedBuilder();
+        builder.setColor(new Color(63,226,69,255));
+        builder.setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
-                            In the mean time, please describe your issue in as much detail as possible! :)
+                            In the meantime, please describe your issue in as much detail as possible! :)
                             """);
-                    builder.addField("Topic", ticket.getTopic(), false);
-                    builder.setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
-                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+        builder.addField("Topic", ticket.getTopic(), false);
+        builder.setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
+        ticketChannel.sendMessage(owner.getAsMention() + " has created a new ticket").complete();
 
-                    success.sendMessage(owner.getAsMention() + " has created a new ticket").queue(s -> success.sendMessageEmbeds(builder.build())
-                            .setActionRow(Button.primary("ticket-claim", "Claim"),
-                                    Button.danger("ticket-close", "Close"))
-                            .queue(q -> {
-                                EmbedBuilder builder1 = new EmbedBuilder();
-                                builder1.setColor(new Color(63,226,69,255));
-                                builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                builder1.setDescription("""
-                                        If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
-                                        This message will delete itself after this minute.
-                                        """);
+        String msgId = ticketChannel.sendMessageEmbeds(builder.build())
+                .setActionRow(Button.primary("ticket-claim", "Claim"),
+                        Button.danger("ticket-close", "Close")).complete().getId();
 
-                                if (!info.equals("")) {
-                                    EmbedBuilder infoBuilder = new EmbedBuilder();
-                                    if (ticket.getSupporter() != null) {
-                                        infoBuilder.setAuthor(ticket.getSupporter().getName(), null, ticket.getSupporter().getEffectiveAvatarUrl());
-                                    }
-                                    infoBuilder.setColor(new Color(63,226,69,255));
-                                    infoBuilder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                    infoBuilder.setTitle("**Extra**");
-                                    infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
-                                    success.sendMessageEmbeds(infoBuilder.build()).submit();
-                                }
+        EmbedBuilder builder1 = new EmbedBuilder();
+        builder1.setColor(new Color(63,226,69,255));
+        builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+        builder1.setDescription("""
+            If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
+            This message will delete itself after this minute.
+            """);
 
-                                success.sendMessageEmbeds(builder1.build())
-                                        .setActionRow(Button.danger("ticket-nevermind", "Nevermind!"))
-                                        .queue(suc -> suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {}));
+        if (!info.equals("")) {
+            EmbedBuilder infoBuilder = new EmbedBuilder();
+            if (ticket.getSupporter() != null) {
+                infoBuilder.setAuthor(ticket.getSupporter().getName(), null, ticket.getSupporter().getEffectiveAvatarUrl());
+            }
+            infoBuilder.setColor(new Color(63,226,69,255));
+            infoBuilder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+            infoBuilder.setTitle("**Extra**");
+            infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
+            ticketChannel.sendMessageEmbeds(infoBuilder.build()).submit();
+        }
 
-                                Transcript transcript = new Transcript(ticket);
-                                transcript.addMessage(q.getId());
-                            }));
-                });
+        ticketChannel.sendMessageEmbeds(builder1.build())
+                .setActionRow(Button.danger("ticket-nevermind", "Nevermind!"))
+                .queue(suc -> suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {}));
+        Transcript transcript = new Transcript(ticket);
+        transcript.addMessage(msgId);
         return true;
     }
 
     public void closeTicket(Ticket ticket, boolean wasAccident) {
         EmbedBuilder builder = new EmbedBuilder();
         Transcript transcript = new Transcript(ticket);
+        allCurrentTickets.remove(ticket);
         if (wasAccident) {
             ticket.getChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
@@ -208,6 +199,19 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(idLong);
+            allCurrentTickets.add(loadedTicket);
+            return loadedTicket;
+        });
+    }
+
+    public Ticket getTicketByTicketId(String ticketID) {
+        Optional<Ticket> optionalTicket = allCurrentTickets.stream()
+                .filter(ticket -> ticket.getId().equals(ticketID))
+                .findAny();
+
+        return optionalTicket.orElseGet(() -> {
+            System.out.println("db");
+            Ticket loadedTicket = ticketData.loadTicket(ticketID);
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });

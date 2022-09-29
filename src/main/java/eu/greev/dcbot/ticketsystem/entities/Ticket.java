@@ -57,4 +57,9 @@ public class Ticket {
             ticketData.saveTicket(this);
         }
     }
+
+    @Override
+    public String toString() {
+        return "Id:" + id + ",Channel:" + channel + ",Owner:" + owner + ",Topic:" + topic + ",Supporter:" + supporter + ",Involved:" + involved;
+    }
 }
