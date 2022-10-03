@@ -70,7 +70,7 @@ public class Main extends ListenerAdapter {
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
 
-    //just a test method: will be removed after testing
+    //just a temp test method: will be removed after testing
     private static void initDatasource() {
         SQLiteDataSource ds = new SQLiteDataSource();
         ds.setUrl("jdbc:sqlite:./GreevTickets/tickets.db");

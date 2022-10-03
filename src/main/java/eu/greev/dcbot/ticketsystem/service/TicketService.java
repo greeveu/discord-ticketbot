@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -132,13 +133,11 @@ public class TicketService {
 
     public boolean claim(Ticket ticket, User supporter) {
         if (supporter != ticket.getOwner()) {
+            allCurrentTickets.remove(ticket);
             ticket.setSupporter(supporter);
-            if (ticket.getSupporter() == null) {
-                ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
-            }else {
-                ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
-            }
-            ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).complete();
+            allCurrentTickets.add(ticket);
+            updateTopic(ticket);
+            ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).queue();
 
             EmbedBuilder builder = new EmbedBuilder();
             builder.setColor(new Color(63,226,69,255));
@@ -175,8 +174,10 @@ public class TicketService {
         if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
         }else {
+            allCurrentTickets.remove(ticket);
             ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticket.addInvolved(user.getId());
+            allCurrentTickets.add(ticket);
             return true;
         }
     }
@@ -184,12 +185,34 @@ public class TicketService {
     public boolean removeUser(Ticket ticket, User user) {
         PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if (permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            allCurrentTickets.remove(ticket);
             ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
             ticket.removeInvolved(user.getId());
+            allCurrentTickets.add(ticket);
             return true;
         }else {
             return false;
         }
+    }
+
+    public boolean setOwner(Ticket ticket, Member owner) {
+        if (ticket.getChannel().getPermissionOverride(owner) == null) return false;
+        if (ticket.getChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            allCurrentTickets.remove(ticket);
+            ticket.setOwner(owner.getUser());
+            updateTopic(ticket);
+            allCurrentTickets.add(ticket);
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+    public void setTopic(Ticket ticket, String topic) {
+        allCurrentTickets.remove(ticket);
+        ticket.setTopic(topic);
+        updateTopic(ticket);
+        allCurrentTickets.add(ticket);
     }
 
     public Ticket getTicketByChannelId(long idLong) {
@@ -215,5 +238,13 @@ public class TicketService {
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
+    }
+
+    private void updateTopic(Ticket ticket) {
+        if (ticket.getSupporter() == null) {
+            ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
+        }else {
+            ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
+        }
     }
 }

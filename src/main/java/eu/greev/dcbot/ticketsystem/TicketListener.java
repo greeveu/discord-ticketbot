@@ -36,8 +36,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @Slf4j
 public class TicketListener extends ListenerAdapter {
@@ -410,6 +408,15 @@ public class TicketListener extends ListenerAdapter {
                 case "add" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
+                            if (event.getOption("member").getAsMember().getRoles().contains(staff)) {
+                                EmbedBuilder builder = new EmbedBuilder();
+                                builder.setColor(Color.RED);
+                                builder.addField("❌ **Adding member failed**", event.getOption("member").getAsUser().getAsMention() + " is a staff member, they is already in the ticket.", false);
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+
+                                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                                return;
+                            }
                             ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
                             if (ticketService.addUser(ticket, event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
@@ -437,6 +444,15 @@ public class TicketListener extends ListenerAdapter {
                 case "remove" -> {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
+                            if (event.getOption("member").getAsMember().getRoles().contains(staff)) {
+                                EmbedBuilder builder = new EmbedBuilder();
+                                builder.setColor(Color.RED);
+                                builder.addField("❌ **Removing member failed**", event.getOption("member").getAsUser().getAsMention() + " is a staff member, you can not remove them from this ticket.", false);
+                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+
+                                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                                return;
+                            }
                             ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
                             if (ticketService.removeUser(ticket, event.getOption("member").getAsUser())) {
                                 EmbedBuilder builder = new EmbedBuilder();
@@ -494,26 +510,24 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-
-                            if (ticket.getChannel().getPermissionOverride(member) == null || ticket.getChannel().getPermissionOverride(member).getDenied().contains(Permission.VIEW_CHANNEL)) {
-                                EmbedBuilder builder = new EmbedBuilder();
-                                builder.setColor(Color.RED);
-                                builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel, please add them first", false);
-                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                                return;
-                            }
                             User owner = event.getOption("member").getAsUser();
                             if (!owner.equals(ticket.getOwner())) {
-                                ticket.setOwner(owner);
-                                EmbedBuilder builder = new EmbedBuilder();
-                                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                                builder.setColor(new Color(63, 226, 69, 255));
-                                builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
-                                builder.addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
+                                if (ticketService.setOwner(ticket, event.getOption("member").getAsMember())) {
+                                    EmbedBuilder builder = new EmbedBuilder();
+                                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                                    builder.setColor(new Color(63, 226, 69, 255));
+                                    builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
+                                    builder.addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
 
-                                event.replyEmbeds(builder.build()).queue();
+                                    event.replyEmbeds(builder.build()).queue();
+                                }else {
+                                    EmbedBuilder builder = new EmbedBuilder();
+                                    builder.setColor(Color.RED);
+                                    builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel, please add them first", false);
+                                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+
+                                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+                                }
                             }else {
                                 EmbedBuilder builder = new EmbedBuilder();
                                 builder.setColor(Color.RED);
@@ -560,7 +574,7 @@ public class TicketListener extends ListenerAdapter {
                     if (member.getRoles().contains(staff)) {
                         if (event.getMessageChannel().getName().contains("ticket-")) {
                             ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-                            ticket.setTopic(event.getOption("topic").getAsString());
+                            ticketService.setTopic(ticket, event.getOption("topic").getAsString());
 
                             EmbedBuilder builder = new EmbedBuilder();
                             builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);

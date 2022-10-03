@@ -68,8 +68,8 @@ public class Transcript {
                 }
             }
             writer.close();
-            temp.renameTo(transcript);
             transcript.delete();
+            temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
         }
@@ -101,7 +101,7 @@ public class Transcript {
             }
             writer.close();
             transcript.delete();
-            temp.renameTo(transcript);
+            temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
         }
@@ -131,8 +131,8 @@ public class Transcript {
         } catch (IOException e) {
             log.error("Could not clean transcript of ticket #" + id, e);
         }
-        temp.renameTo(transcript);
         transcript.delete();
-        return temp;
+        temp.renameTo(transcript);
+        return transcript;
     }
 }
