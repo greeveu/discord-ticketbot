@@ -1,46 +1,41 @@
 package eu.greev.dcbot.ticketsystem.entities;
 
 import eu.greev.dcbot.ticketsystem.service.TicketData;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
+@Builder
 public class Ticket {
     @Getter private User owner;
     @Getter private User supporter;
-    @Getter private String topic = "No topic given";
-    @Getter private ArrayList<String> involved = new ArrayList<>();
+    @Getter @Builder.Default private String topic = "No topic given";
+    @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
     @Getter private final String id;
     @Getter private TextChannel channel;
     private final TicketData ticketData;
-
-    public Ticket(String id, TicketData ticketData) {
-        this.id = id;
-        this.ticketData = ticketData;
-    }
+    private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
 
     public void setOwner(User owner) {
         this.owner = owner;
-        ticketData.saveTicket(this);
+        this.save();
     }
 
     public void setSupporter(User supporter) {
         this.supporter = supporter;
-        ticketData.saveTicket(this);
+        this.save();
     }
 
     public void setTopic(String topic) {
         this.topic = topic;
-        ticketData.saveTicket(this);
-    }
-
-    public void setInvolved(ArrayList<String> involved) {
-        this.involved = involved;
-        ticketData.saveTicket(this);
+        this.save();
     }
 
     public void setChannel(TextChannel channel) { this.channel = channel; }
@@ -48,14 +43,18 @@ public class Ticket {
     public void addInvolved(String involved) {
         if (!this.involved.contains(involved)) {
             this.involved.add(involved);
-            ticketData.saveTicket(this);
+            this.save();
         }
     }
 
     public void removeInvolved(String involved) {
         if (this.involved.remove(involved)) {
-            ticketData.saveTicket(this);
+            this.save();
         }
+    }
+
+    public void save() {
+        EXECUTOR.execute(() -> ticketData.saveTicket(this));
     }
 
     @Override

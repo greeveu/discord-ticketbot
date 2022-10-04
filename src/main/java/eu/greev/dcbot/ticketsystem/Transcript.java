@@ -18,10 +18,10 @@ public class Transcript {
         transcript = new File("./GreevTickets/transcripts/" + id + ".txt");
         try {
             if (transcript.createNewFile()) {
-                BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
-                writer.write("Transcript of ticket #" + id);
-                writer.newLine();
-                writer.close();
+                try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
+                    writer.write("Transcript of ticket #" + id);
+                    writer.newLine();
+                }
             }
         } catch (IOException e) {
             log.error("Could not create transcript", e);
@@ -29,11 +29,9 @@ public class Transcript {
     }
 
     public void addMessage(String message) {
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true));
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
             writer.write(message);
             writer.newLine();
-            writer.close();
         } catch (IOException e) {
             log.error("Could not create transcript of ticket #" + id, e);
         }
@@ -43,33 +41,32 @@ public class Transcript {
         File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
         try {
             temp.createNewFile();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-            BufferedReader reader = new BufferedReader(new FileReader(transcript));
-            List<String> lines = reader.lines().toList();
-            reader.close();
-            int edits = 1;
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
+                 BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
+                List<String> lines = reader.lines().toList();
+                int edits = 1;
 
-            StringBuilder contentBuilder = new StringBuilder(content);
-            for (String line : lines) {
-                if (line.split("}")[0].equals(messageId)) {
-                    if (line.split("~edit-").length > 1) {
-                        edits += Integer.parseInt(line.split("~edit-")[line.split("~edit-").length - 1].substring(0, 1));
-                    }
-                    if (edits == 1) {
-                        contentBuilder.insert(0, "~original~: " + line.split(":>>> ")[1] + " | ~edit-1~:>> ");
+                StringBuilder contentBuilder = new StringBuilder(content);
+                for (String line : lines) {
+                    if (line.split("}")[0].equals(messageId)) {
+                        if (line.split("~edit-").length > 1) {
+                            edits += Integer.parseInt(line.split("~edit-")[line.split("~edit-").length - 1].substring(0, 1));
+                        }
+                        if (edits == 1) {
+                            contentBuilder.insert(0, "~original~: " + line.split(":>>> ")[1] + " | ~edit-1~:>> ");
+                        } else {
+                            contentBuilder.insert(0, line.split("~edit-" + edits)[0].split(":>>> ")[1] + "  ~edit-" + edits + "~:>> ");
+                        }
+                        writer.write(line.split(":>>> ")[0] + ":>>> " + contentBuilder);
+                        writer.newLine();
                     } else {
-                        contentBuilder.insert(0, line.split("~edit-" + edits)[0].split(":>>> ")[1] + "  ~edit-" + edits + "~:>> ");
+                        writer.write(line);
+                        writer.newLine();
                     }
-                    writer.write(line.split(":>>> ")[0] + ":>>> " + contentBuilder);
-                    writer.newLine();
-                } else {
-                    writer.write(line);
-                    writer.newLine();
                 }
+                transcript.delete();
+                temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
             }
-            writer.close();
-            transcript.delete();
-            temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
         }
@@ -79,29 +76,27 @@ public class Transcript {
         try {
             File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
             temp.createNewFile();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-            BufferedReader reader = new BufferedReader(new FileReader(transcript));
-            List<String> lines = reader.lines().toList();
-            reader.close();
-
-            for (String line : lines) {
-                if (line.contains(messageId)) {
-                    String log;
-                    try {
-                        log = line.replace(":>>> " + line.split(":>>> ")[1], ":>>> ~~" + line.split(":>>> ")[1] + "~~");
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        return;
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
+                 BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
+                List<String> lines = reader.lines().toList();
+                for (String line : lines) {
+                    if (line.contains(messageId)) {
+                        String log;
+                        try {
+                            log = line.replace(":>>> " + line.split(":>>> ")[1], ":>>> ~~" + line.split(":>>> ")[1] + "~~");
+                        } catch (ArrayIndexOutOfBoundsException e) {
+                            return;
+                        }
+                        writer.write(log);
+                        writer.newLine();
+                    } else {
+                        writer.write(line);
+                        writer.newLine();
                     }
-                    writer.write(log);
-                    writer.newLine();
-                } else {
-                    writer.write(line);
-                    writer.newLine();
+                    transcript.delete();
+                    temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
                 }
             }
-            writer.close();
-            transcript.delete();
-            temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
         }
@@ -111,28 +106,27 @@ public class Transcript {
         File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
         try {
             temp.createNewFile();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-            BufferedReader reader = new BufferedReader(new FileReader(transcript));
-            List<String> lines = reader.lines().toList();
-            reader.close();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
+                 BufferedReader reader = new BufferedReader(new FileReader(transcript));) {
+                List<String> lines = reader.lines().toList();
 
-            for (String line : lines) {
-                if (lines.get(0).equals(line)) {
-                    writer.write("Transcript of ticket: #" + id);
+                for (String line : lines) {
+                    if (lines.get(0).equals(line)) {
+                        writer.write("Transcript of ticket: #" + id);
+                        writer.newLine();
+                        continue;
+                    }else if (lines.get(1).equals(line)) continue;
+
+                    String content = line.split("} ")[1];
+                    writer.write(content);
                     writer.newLine();
-                    continue;
-                }else if (lines.get(1).equals(line)) continue;
-
-                String content = line.split("} ")[1];
-                writer.write(content);
-                writer.newLine();
-            };
-            writer.close();
+                }
+            }
+            transcript.delete();
+            temp.renameTo(transcript);
         } catch (IOException e) {
             log.error("Could not clean transcript of ticket #" + id, e);
         }
-        transcript.delete();
-        temp.renameTo(transcript);
         return transcript;
     }
 }

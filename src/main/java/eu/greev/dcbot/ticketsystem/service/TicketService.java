@@ -42,7 +42,8 @@ public class TicketService {
     }
 
     public boolean createNewTicket(String info, String topic, User owner) {
-        Ticket ticket = new Ticket((ticketData.getLastTicketId() + 1) + "", ticketData);
+        Ticket ticket = Ticket.builder().id((ticketData.getLastTicketId() + 1) + "").ticketData(ticketData).build();
+
         Guild guild = jda.getGuildById(Constants.SERVER_ID);
         for (TextChannel textChannel : guild.getTextChannels()) {
             if (textChannel.getName().contains("ticket-")) {
@@ -69,7 +70,7 @@ public class TicketService {
                 .execute());
 
         EmbedBuilder builder = new EmbedBuilder();
-        builder.setColor(new Color(63,226,69,255));
+        builder.setColor(Constants.GREEV_GREEN);
         builder.setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
                             In the meantime, please describe your issue in as much detail as possible! :)
@@ -79,11 +80,11 @@ public class TicketService {
         ticketChannel.sendMessage(owner.getAsMention() + " has created a new ticket").complete();
 
         String msgId = ticketChannel.sendMessageEmbeds(builder.build())
-                .setActionRow(Button.primary("ticket-claim", "Claim"),
-                        Button.danger("ticket-close", "Close")).complete().getId();
+                .setActionRow(Button.primary("claim", "Claim"),
+                        Button.danger("close", "Close")).complete().getId();
 
         EmbedBuilder builder1 = new EmbedBuilder();
-        builder1.setColor(new Color(63,226,69,255));
+        builder1.setColor(Constants.GREEV_GREEN);
         builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
         builder1.setDescription("""
             If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
@@ -95,7 +96,7 @@ public class TicketService {
             if (ticket.getSupporter() != null) {
                 infoBuilder.setAuthor(ticket.getSupporter().getName(), null, ticket.getSupporter().getEffectiveAvatarUrl());
             }
-            infoBuilder.setColor(new Color(63,226,69,255));
+            infoBuilder.setColor(Constants.GREEV_GREEN);
             infoBuilder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
             infoBuilder.setTitle("**Extra**");
             infoBuilder.addField("Given Information⠀⠀⠀⠀⠀⠀⠀⠀⠀", info, false);
@@ -133,14 +134,12 @@ public class TicketService {
 
     public boolean claim(Ticket ticket, User supporter) {
         if (supporter != ticket.getOwner()) {
-            allCurrentTickets.remove(ticket);
             ticket.setSupporter(supporter);
-            allCurrentTickets.add(ticket);
             updateTopic(ticket);
             ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).queue();
 
             EmbedBuilder builder = new EmbedBuilder();
-            builder.setColor(new Color(63,226,69,255));
+            builder.setColor(Constants.GREEV_GREEN);
             builder.setDescription("Hello there, " + ticket.getOwner().getAsMention() + "!" + """
                             A member of staff will assist you shortly.
                             In the mean time, please describe your issue in as much detail as possible! :)
@@ -173,46 +172,37 @@ public class TicketService {
         PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
-        }else {
-            allCurrentTickets.remove(ticket);
-            ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
-            ticket.addInvolved(user.getId());
-            allCurrentTickets.add(ticket);
-            return true;
         }
+        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        ticket.addInvolved(user.getId());
+        return true;
     }
 
     public boolean removeUser(Ticket ticket, User user) {
         PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
-        if (permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
-            allCurrentTickets.remove(ticket);
-            ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
-            ticket.removeInvolved(user.getId());
-            allCurrentTickets.add(ticket);
-            return true;
-        }else {
+        if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
+        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        ticket.removeInvolved(user.getId());
+        return true;
     }
 
     public boolean setOwner(Ticket ticket, Member owner) {
-        if (ticket.getChannel().getPermissionOverride(owner) == null) return false;
-        if (ticket.getChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
-            allCurrentTickets.remove(ticket);
-            ticket.setOwner(owner.getUser());
-            updateTopic(ticket);
-            allCurrentTickets.add(ticket);
-            return true;
-        }else {
+        if (ticket.getChannel().getPermissionOverride(owner) == null) {
             return false;
         }
+        if (!ticket.getChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+            return false;
+        }
+        ticket.setOwner(owner.getUser());
+        updateTopic(ticket);
+        return true;
     }
 
     public void setTopic(Ticket ticket, String topic) {
-        allCurrentTickets.remove(ticket);
         ticket.setTopic(topic);
         updateTopic(ticket);
-        allCurrentTickets.add(ticket);
     }
 
     public Ticket getTicketByChannelId(long idLong) {
@@ -233,7 +223,6 @@ public class TicketService {
                 .findAny();
 
         return optionalTicket.orElseGet(() -> {
-            System.out.println("db");
             Ticket loadedTicket = ticketData.loadTicket(ticketID);
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;

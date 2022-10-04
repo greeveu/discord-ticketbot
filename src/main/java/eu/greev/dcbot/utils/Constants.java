@@ -18,4 +18,6 @@ public class Constants {
     public static final long BASE_CHANNEL = 1013360882249629759L;
     public static final long SUPPORT_CATEGORY = 1013360882249629757L;
     public static final long SERVER_ID = 1013360880882298973L;
+
+    public static final Color GREEV_GREEN = new Color(63, 226, 69, 255);
 }
