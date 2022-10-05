@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
@@ -15,7 +14,7 @@ import java.awt.*;
 
 @AllArgsConstructor
 public class SetOwner extends AbstractCommand {
-    private final Role STAFF;
+    private final Role staff;
     private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
     private final EmbedBuilder missingPerm;
@@ -25,40 +24,34 @@ public class SetOwner extends AbstractCommand {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
         Member member = event.getMember();
 
-        if (member.getRoles().contains(STAFF)) {
-            if (event.getMessageChannel().getName().contains("ticket-")) {
-                Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-                User owner = event.getOption("member").getAsUser();
-                if (!owner.equals(ticket.getOwner())) {
-                    if (ticketService.setOwner(ticket, event.getOption("member").getAsMember())) {
-                        EmbedBuilder builder = new EmbedBuilder();
-                        builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                        builder.setColor(Constants.GREEV_GREEN);
-                        builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
-                        builder.addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
-
-                        event.replyEmbeds(builder.build()).queue();
-                    }else {
-                        EmbedBuilder builder = new EmbedBuilder();
-                        builder.setColor(Color.RED);
-                        builder.addField("❌ **Setting new owner failed**", "This user has not access to this channel, please add them first", false);
-                        builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                        event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                    }
-                }else {
-                    EmbedBuilder builder = new EmbedBuilder();
-                    builder.setColor(Color.RED);
-                    builder.addField("❌ **Setting new owner failed**", "This member is already the creator", false);
-                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                    event.replyEmbeds(builder.build()).setEphemeral(true).queue();
-                }
-            } else {
-                event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
-            }
-        } else {
+        if (!member.getRoles().contains(staff)) {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
+        }
+        if (!event.getMessageChannel().getName().contains("ticket-")) {
+            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
+        }
+
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        if (!event.getOption("member").getAsUser().equals(ticket.getOwner())) {
+            if (ticketService.setOwner(ticket, event.getOption("member").getAsMember())) {
+                EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                        .setColor(Constants.GREEV_GREEN)
+                        .setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl())
+                        .addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
+                event.replyEmbeds(builder.build()).queue();
+            }else {
+                EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                        .setColor(Color.RED)
+                        .addField("❌ **Setting new owner failed**", "This user has not access to this channel, please add them first", false);
+                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+            }
+        }else {
+            EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                    .setColor(Color.RED)
+                    .addField("❌ **Setting new owner failed**", "This member is already the creator", false);
+            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         }
     }
 }

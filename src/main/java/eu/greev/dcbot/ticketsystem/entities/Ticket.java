@@ -23,34 +23,42 @@ public class Ticket {
     private final TicketData ticketData;
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
 
-    public void setOwner(User owner) {
+    public Ticket setOwner(User owner) {
         this.owner = owner;
         this.save();
+        return this;
     }
 
-    public void setSupporter(User supporter) {
+    public Ticket setSupporter(User supporter) {
         this.supporter = supporter;
         this.save();
+        return this;
     }
 
-    public void setTopic(String topic) {
+    public Ticket setTopic(String topic) {
         this.topic = topic;
         this.save();
+        return this;
     }
 
-    public void setChannel(TextChannel channel) { this.channel = channel; }
+    public Ticket setChannel(TextChannel channel) {
+        this.channel = channel;
+        return this;
+    }
 
-    public void addInvolved(String involved) {
+    public Ticket addInvolved(String involved) {
         if (!this.involved.contains(involved)) {
             this.involved.add(involved);
             this.save();
         }
+        return this;
     }
 
-    public void removeInvolved(String involved) {
+    public Ticket removeInvolved(String involved) {
         if (this.involved.remove(involved)) {
             this.save();
         }
+        return this;
     }
 
     public void save() {

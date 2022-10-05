@@ -21,10 +21,9 @@ public class TicketNevermind extends AbstractButton {
         if (ticket.getOwner().equals(event.getUser())) {
             ticketService.closeTicket(ticket, true);
         }else {
-            EmbedBuilder builder = new EmbedBuilder();
-            builder.setColor(Color.RED);
-            builder.addField("❌ **Missing access**", "You can not click this button", false);
-            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+            EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
+                    .addField("❌ **Missing access**", "You can not click this button", false)
+                    .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         }
     }

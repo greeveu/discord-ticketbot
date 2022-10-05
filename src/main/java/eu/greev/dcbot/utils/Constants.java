@@ -3,7 +3,7 @@ package eu.greev.dcbot.utils;
 import java.awt.*;
 
 public class Constants {
-    public static String GREEV_LOGO = "https://cdn.pluoi.com/greev/logo-clear.png";
+    public static final String GREEV_LOGO = "https://cdn.pluoi.com/greev/logo-clear.png";
     public static final String SERVER_NAME = "Greev.eu";
 
     /*correct greev-ids

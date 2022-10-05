@@ -20,20 +20,19 @@ public class TicketClose implements Interaction{
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (event.getMember().getRoles().contains(staff)) {
-            if (event.getMessageChannel().getName().contains("ticket-")) {
-                EmbedBuilder builder = new EmbedBuilder();
-                builder.setColor(Color.WHITE);
-                builder.addField("Close Confirmation", "Do you really want to close this ticket?", true);
-                event.replyEmbeds(builder.build())
-                        .addActionRow(Button.primary("ticket-confirm", "✔️ Close"))
-                        .setEphemeral(true)
-                        .queue();
-            } else {
-                event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
-            }
-        } else {
+        if (!event.getMember().getRoles().contains(staff)) {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
         }
+        if (!event.getMessageChannel().getName().contains("ticket-")) {
+            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
+        }
+        EmbedBuilder builder = new EmbedBuilder().setColor(Color.WHITE)
+                .addField("Close Confirmation", "Do you really want to close this ticket?", true);
+        event.replyEmbeds(builder.build())
+                .addActionRow(Button.primary("ticket-confirm", "✔️ Close"))
+                .setEphemeral(true)
+                .queue();
     }
 }

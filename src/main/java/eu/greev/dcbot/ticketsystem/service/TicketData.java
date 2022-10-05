@@ -39,19 +39,12 @@ public class TicketData {
                     return null;
                 })
                 .findFirst());
-
         return ticket.build();
     }
 
     protected Ticket loadTicket(long ticketChannelID) {
         return this.loadTicket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
     }
-
-    /*public List<String> getCurrentTickets() {
-        return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets")
-                .mapTo(String.class)
-                .list());
-    }*/
 
     public Integer getLastTicketId() {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets ORDER BY ticketID DESC LIMIT 1")

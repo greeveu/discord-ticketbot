@@ -21,7 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 @Slf4j
 public class SetTopic extends AbstractCommand {
-    private final Role STAFF;
+    private final Role staff;
     private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
     private final EmbedBuilder missingPerm;
@@ -30,48 +30,44 @@ public class SetTopic extends AbstractCommand {
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
         Member member = event.getMember();
-
-        if (member.getRoles().contains(STAFF)) {
-            if (event.getMessageChannel().getName().contains("ticket-")) {
-                Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-                ticketService.setTopic(ticket, event.getOption("topic").getAsString());
-
-                EmbedBuilder builder = new EmbedBuilder();
-                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                builder.setColor(Constants.GREEV_GREEN);
-                builder.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl());
-                builder.addField("✅ **New Topic**", "Changed topic to '" + event.getOption("topic").getAsString() + "'", false);
-
-                File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
-                try {
-                    BufferedReader reader = new BufferedReader(new FileReader(transcript));
-                    List<String> lines = reader.lines().toList();
-                    reader.close();
-                    EmbedBuilder builder1 = new EmbedBuilder();
-                    builder1.setColor(Constants.GREEV_GREEN);
-                    builder1.setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
-                                        A member of staff will assist you shortly.
-                                        In the mean time, please describe your issue in as much detail as possible! :)
-                                        """);
-                    builder1.addField("Topic", ticket.getTopic(), false);
-                    builder1.setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
-                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                    if (ticket.getChannel().getTopic().split(" \\| ").length > 2) {
-                        ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.danger("ticket-close", "Close")).queue();
-                    }else {
-                        ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.primary("ticket-claim", "Claim"),
-                                Button.danger("ticket-close", "Close")).queue();
-                    }
-                } catch (IOException e) {
-                    log.error("Failed reading File", e);
-                }
-                event.replyEmbeds(builder.build()).queue();
-            } else {
-                event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
-            }
-        } else {
+        if (!member.getRoles().contains(staff)) {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
         }
+        if (!event.getMessageChannel().getName().contains("ticket-")) {
+            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            return;
+        }
+
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        ticketService.setTopic(ticket, event.getOption("topic").getAsString());
+        EmbedBuilder builder = new EmbedBuilder()
+                .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                .setColor(Constants.GREEV_GREEN)
+                .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                .addField("✅ **New Topic**", "Changed topic to '" + event.getOption("topic").getAsString() + "'", false);
+        File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(transcript));
+            List<String> lines = reader.lines().toList();
+            reader.close();
+            EmbedBuilder builder1 = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                    .setColor(Constants.GREEV_GREEN)
+                    .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
+                                   A member of staff will assist you shortly.
+                                   In the mean time, please describe your issue in as much detail as possible! :)
+                                   """)
+                    .addField("Topic", ticket.getTopic(), false)
+                    .setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
+            if (ticket.getChannel().getTopic().split(" \\| ").length > 2) {
+                ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+            }else {
+                ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
+                        Button.danger("ticket-close", "Close")).queue();
+            }
+        } catch (IOException e) {
+            log.error("Failed reading File", e);
+        }
+        event.replyEmbeds(builder.build()).queue();
     }
 }

@@ -1,4 +1,4 @@
-package eu.greev.dcbot.ticketsystem;
+package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import lombok.Getter;
@@ -84,9 +84,7 @@ public class Transcript {
                         String log;
                         try {
                             log = line.replace(":>>> " + line.split(":>>> ")[1], ":>>> ~~" + line.split(":>>> ")[1] + "~~");
-                        } catch (ArrayIndexOutOfBoundsException e) {
-                            return;
-                        }
+                        } catch (ArrayIndexOutOfBoundsException e) { return; }
                         writer.write(log);
                         writer.newLine();
                     } else {
@@ -111,11 +109,13 @@ public class Transcript {
                 List<String> lines = reader.lines().toList();
 
                 for (String line : lines) {
+                    if (lines.get(1).equals(line)) continue;
+
                     if (lines.get(0).equals(line)) {
                         writer.write("Transcript of ticket: #" + id);
                         writer.newLine();
                         continue;
-                    }else if (lines.get(1).equals(line)) continue;
+                    }
 
                     String content = line.split("} ")[1];
                     writer.write(content);

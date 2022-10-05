@@ -26,18 +26,17 @@ public abstract class AbstractModal implements Interaction {
 
         if (ticketService.createNewTicket(getTicketInfo(event), getTicketTopic(event), event.getUser())) {
             Ticket ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
-            EmbedBuilder builder = new EmbedBuilder();
-            builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-            builder.addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
-            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+            EmbedBuilder builder = new EmbedBuilder().setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
+                    .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false)
+                    .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         } else {
             EmbedBuilder builder = new EmbedBuilder();
             event.getGuild().getTextChannels().forEach(channel -> {
                 if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
-                    builder.setColor(Color.RED);
-                    builder.addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
-                    builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    builder.setColor(Color.RED)
+                            .addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false)
+                            .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
                 }
             });
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();

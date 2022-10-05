@@ -38,12 +38,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class Main extends ListenerAdapter {
     private static Jdbi jdbi;
-    public static final HashMap<String, Interaction> INTERACTIONS = new HashMap<>();
+    public static final Map<String, Interaction> INTERACTIONS = new HashMap<>();
 
     public static void main(String[] args) throws InterruptedException, IOException, URISyntaxException {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
@@ -86,34 +87,34 @@ public class Main extends ListenerAdapter {
         EmbedBuilder wrongChannel = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                 .addField("❌ **Wrong channel**", "You have to use this command in a ticket!", false);
 
-        Role STAFF = jda.getRoleById(Constants.TEAM_ID);
-        INTERACTIONS.put("claim", new TicketClaim(wrongChannel, missingPerm, STAFF, ticketService));
-        INTERACTIONS.put("close", new TicketClose(wrongChannel, missingPerm, STAFF));
+        Role staff = jda.getRoleById(Constants.TEAM_ID);
 
+        registerInteraction("claim", new TicketClaim(wrongChannel, missingPerm, staff, ticketService));
+        registerInteraction("close", new TicketClose(wrongChannel, missingPerm, staff));
 
-        INTERACTIONS.put("ticket-confirm", new TicketConfirm(ticketService));
-        INTERACTIONS.put("setup", new Setup(missingPerm, jda));
-        INTERACTIONS.put("create", new Create(ticketService, ticketData));
-        INTERACTIONS.put("add", new AddMember(STAFF, ticketService, wrongChannel, missingPerm));
-        INTERACTIONS.put("remove", new RemoveMember(STAFF, ticketService, wrongChannel, missingPerm));
-        INTERACTIONS.put("set-supporter", new SetSupporter(STAFF, jda, ticketService, wrongChannel, missingPerm));
-        INTERACTIONS.put("set-owner", new SetOwner(STAFF, ticketService, wrongChannel, missingPerm));
-        INTERACTIONS.put("set-waiting", new SetWaiting(STAFF, ticketService, wrongChannel, missingPerm));
-        INTERACTIONS.put("set-topic", new SetTopic(STAFF, ticketService, wrongChannel, missingPerm));
+        registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
+        registerInteraction("setup", new Setup(missingPerm, jda));
+        registerInteraction("create", new Create(ticketService, ticketData));
+        registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-supporter", new SetSupporter(staff, jda, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-owner", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-waiting", new SetWaiting(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-topic", new SetTopic(staff, ticketService, wrongChannel, missingPerm));
 
-        INTERACTIONS.put("complain", new Complain(ticketService, ticketData));
-        INTERACTIONS.put("custom", new Custom(ticketService, ticketData));
-        INTERACTIONS.put("pardon", new Pardon(ticketService, ticketData));
-        INTERACTIONS.put("report", new Report(ticketService, ticketData));
-        INTERACTIONS.put("bug", new Bug(ticketService, ticketData));
-        INTERACTIONS.put("question", new Question(ticketService, ticketData));
+        registerInteraction("complain", new Complain(ticketService, ticketData));
+        registerInteraction("custom", new Custom(ticketService, ticketData));
+        registerInteraction("pardon", new Pardon(ticketService, ticketData));
+        registerInteraction("report", new Report(ticketService, ticketData));
+        registerInteraction("bug", new Bug(ticketService, ticketData));
+        registerInteraction("question", new Question(ticketService, ticketData));
 
-        INTERACTIONS.put("select-complain", new TicketComplain());
-        INTERACTIONS.put("select-custom", new TicketCustom());
-        INTERACTIONS.put("select-pardon", new TicketPardon());
-        INTERACTIONS.put("select-report", new TicketReport());
-        INTERACTIONS.put("select-bug", new TicketBug());
-        INTERACTIONS.put("select-question", new TicketQuestion());
+        registerInteraction("select-complain", new TicketComplain());
+        registerInteraction("select-custom", new TicketCustom());
+        registerInteraction("select-pardon", new TicketPardon());
+        registerInteraction("select-report", new TicketReport());
+        registerInteraction("select-bug", new TicketBug());
+        registerInteraction("select-question", new TicketQuestion());
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
@@ -135,5 +136,9 @@ public class Main extends ListenerAdapter {
         for (String query : queries) {
             jdbi.withHandle(h -> h.createUpdate(query).execute());
         }
+    }
+
+    private static void registerInteraction(String identifier, Interaction interaction) {
+        INTERACTIONS.put(identifier, interaction);
     }
 }
