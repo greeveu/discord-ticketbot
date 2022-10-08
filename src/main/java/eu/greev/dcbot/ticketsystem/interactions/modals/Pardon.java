@@ -18,6 +18,6 @@ public class Pardon extends AbstractModal {
 
     @Override
     String getTicketTopic(ModalInteractionEvent event) {
-        return event.getValue("member").getAsString() + " wants pardom";
+        return event.getValue("member").getAsString() + " wants pardon";
     }
 }

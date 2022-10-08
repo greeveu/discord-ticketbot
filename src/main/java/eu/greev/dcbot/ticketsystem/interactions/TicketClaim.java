@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.Event;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
@@ -28,47 +29,92 @@ public class TicketClaim implements Interaction {
 
     @Override
     public void execute(Event evt) {
-        ButtonInteractionEvent event = (ButtonInteractionEvent) evt;
-        if (!event.getMember().getRoles().contains(staff)) {
-            event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
-            return;
-        }
-        if (!event.getMessageChannel().getName().contains("ticket-")) {
-            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
-            return;
-        }
+        if (evt instanceof ButtonInteractionEvent event) {
+            if (!event.getMember().getRoles().contains(staff)) {
+                event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+                return;
+            }
+            if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {
+                event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+                return;
+            }
 
-        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticketService.claim(ticket, event.getUser())) {
-            EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
-                    .setColor(Constants.GREEV_GREEN)
-                    .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
-                    .addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
+            Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+            if (ticketService.claim(ticket, event.getUser())) {
+                EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                        .setColor(Constants.GREEV_GREEN)
+                        .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                        .addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
 
-            File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
-            try {
-                BufferedReader reader = new BufferedReader(new FileReader(transcript));
-                List<String> lines = reader.lines().toList();
-                reader.close();
-                EmbedBuilder builder1 = new EmbedBuilder().setColor(new Color(63, 226, 69, 255))
-                        .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
+                File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
+                try {
+                    BufferedReader reader = new BufferedReader(new FileReader(transcript));
+                    List<String> lines = reader.lines().toList();
+                    reader.close();
+                    EmbedBuilder builder1 = new EmbedBuilder().setColor(new Color(63, 226, 69, 255))
+                            .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
                         A member of staff will assist you shortly.
                         In the mean time, please describe your issue in as much detail as possible! :)
                         """)
-                        .addField("Topic", ticket.getTopic(), false)
-                        .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
-                        .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                            .addField("Topic", ticket.getTopic(), false)
+                            .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
+                            .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
 
-                ticket.getChannel().editMessageEmbedsById(lines.get(0), builder1.build()).setActionRow(Button.danger("close", "Close")).queue();
-            } catch (IOException e) {
-                log.error("Failed reading File", e);
+                    ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("close", "Close")).queue();
+                } catch (IOException e) {
+                    log.error("Failed reading File", e);
+                }
+                event.replyEmbeds(builder.build()).queue();
+            } else {
+                EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
+                        .addField("❌ **Failed claiming**", "You can not claim this ticket!", false)
+                        .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             }
-            event.replyEmbeds(builder.build()).queue();
-        } else {
-            EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
-                    .addField("❌ **Failed claiming**", "You can not claim this ticket!", false)
-                    .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+        }
+
+        if (evt instanceof SlashCommandInteractionEvent event) {
+            if (!event.getMember().getRoles().contains(staff)) {
+                event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+                return;
+            }
+            if (!event.getMessageChannel().getName().contains("ticket-")) {
+                event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+                return;
+            }
+
+            Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+            if (ticketService.claim(ticket, event.getUser())) {
+                EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                        .setColor(Constants.GREEV_GREEN)
+                        .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                        .addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
+
+                File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
+                try {
+                    BufferedReader reader = new BufferedReader(new FileReader(transcript));
+                    List<String> lines = reader.lines().toList();
+                    reader.close();
+                    EmbedBuilder builder1 = new EmbedBuilder().setColor(new Color(63, 226, 69, 255))
+                            .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
+                            A member of staff will assist you shortly.
+                            In the mean time, please describe your issue in as much detail as possible! :)
+                            """)
+                            .addField("Topic", ticket.getTopic(), false)
+                            .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
+                            .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+
+                    ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("close", "Close")).queue();
+                } catch (IOException e) {
+                    log.error("Failed reading File", e);
+                }
+                event.replyEmbeds(builder.build()).queue();
+            } else {
+                EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
+                        .addField("❌ **Failed claiming**", "You can not claim this ticket!", false)
+                        .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+            }
         }
     }
 }

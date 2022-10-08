@@ -110,13 +110,16 @@ public class Transcript {
 
                 for (String line : lines) {
                     if (lines.get(1).equals(line)) continue;
-
                     if (lines.get(0).equals(line)) {
                         writer.write("Transcript of ticket: #" + id);
                         writer.newLine();
                         continue;
                     }
-
+                    if (!line.contains("} ")) {
+                        writer.write(line);
+                        writer.newLine();
+                        continue;
+                    }
                     String content = line.split("} ")[1];
                     writer.write(content);
                     writer.newLine();

@@ -4,7 +4,8 @@ import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.interactions.Interaction;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClaim;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClose;
-import eu.greev.dcbot.ticketsystem.interactions.buttons.*;
+import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketConfirm;
+import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketNevermind;
 import eu.greev.dcbot.ticketsystem.interactions.commands.*;
 import eu.greev.dcbot.ticketsystem.interactions.modals.*;
 import eu.greev.dcbot.ticketsystem.interactions.selections.*;
@@ -76,10 +77,13 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("set-owner", "Set the new owner of the ticket")
                         .addOption(OptionType.USER, "member", "The new owner"))
                 .addSubcommands(new SubcommandData("set-waiting", "Set the ticket in waiting mode"))
-                .addSubcommands(new SubcommandData("set-supporter", "Sets the new supporter")
+                .addSubcommands(new SubcommandData("transfer", "Sets the new supporter")
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
-                        .addOption(OptionType.STRING, "topic", "The new topic", true))).queue();
+                        .addOption(OptionType.STRING, "topic", "The new topic", true))
+                .addSubcommands(new SubcommandData("transcript", "Get the transcript of a ticket via DM")
+                        .addOption(OptionType.STRING, "ticket", "The id of the ticket")))
+                .queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                 .addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
@@ -88,12 +92,12 @@ public class Main extends ListenerAdapter {
                 .addField("❌ **Wrong channel**", "You have to use this command in a ticket!", false);
 
         Role staff = jda.getRoleById(Constants.TEAM_ID);
-
         registerInteraction("claim", new TicketClaim(wrongChannel, missingPerm, staff, ticketService));
-        registerInteraction("close", new TicketClose(wrongChannel, missingPerm, staff));
+        registerInteraction("close", new TicketClose(wrongChannel, missingPerm, ticketService, staff));
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
         registerInteraction("setup", new Setup(missingPerm, jda));
+        registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
         registerInteraction("create", new Create(ticketService, ticketData));
         registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
@@ -102,6 +106,7 @@ public class Main extends ListenerAdapter {
         registerInteraction("set-waiting", new SetWaiting(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-topic", new SetTopic(staff, ticketService, wrongChannel, missingPerm));
 
+        registerInteraction("nevermind", new TicketNevermind(ticketService));
         registerInteraction("complain", new Complain(ticketService, ticketData));
         registerInteraction("custom", new Custom(ticketService, ticketData));
         registerInteraction("pardon", new Pardon(ticketService, ticketData));
@@ -121,6 +126,7 @@ public class Main extends ListenerAdapter {
 
     //just a temp test method: will be removed after testing
     private static void initDatasource() {
+        new File("./GreevTickets").mkdirs();
         SQLiteDataSource ds = new SQLiteDataSource();
         ds.setUrl("jdbc:sqlite:./GreevTickets/tickets.db");
         jdbi = Jdbi.create(ds);

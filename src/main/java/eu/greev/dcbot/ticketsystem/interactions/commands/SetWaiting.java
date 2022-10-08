@@ -27,7 +27,7 @@ public class SetWaiting extends AbstractCommand {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
             return;
         }
-        if (!event.getMessageChannel().getName().contains("ticket-")) {
+        if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {
             event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
             return;
         }

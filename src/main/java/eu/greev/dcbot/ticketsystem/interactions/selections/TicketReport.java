@@ -15,12 +15,12 @@ public class TicketReport extends AbstractSelection {
         TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Your Minecraft name")
                 .setMinLength(2)
-                .setMaxLength(12)
+                .setMaxLength(16)
                 .build();
         TextInput hacker = TextInput.create("hacker", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Who do you wanna report?")
                 .setMinLength(2)
-                .setMaxLength(12)
+                .setMaxLength(16)
                 .build();
         TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("The reason for reporting")

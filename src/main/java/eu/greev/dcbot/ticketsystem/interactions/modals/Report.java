@@ -16,7 +16,7 @@ public class Report extends AbstractModal {
         String report = event.getValue("hacker").getAsString();
         String reason = event.getValue("reason").getAsString();
 
-        return name + " wants to report " + report + "\n\n**Reason:**\n" + reason;
+        return name + " wants to report " + report + "\nReason\n" + reason;
     }
 
     @Override

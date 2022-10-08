@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 
@@ -25,7 +26,7 @@ public abstract class AbstractModal implements Interaction {
         ModalInteractionEvent event = (ModalInteractionEvent) evt;
 
         if (ticketService.createNewTicket(getTicketInfo(event), getTicketTopic(event), event.getUser())) {
-            Ticket ticket = ticketService.getTicketByTicketId((ticketData.getLastTicketId()) + "");
+            Ticket ticket = ticketService.getTicketByTicketId(String.valueOf(ticketData.getLastTicketId()));
             EmbedBuilder builder = new EmbedBuilder().setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
                     .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false)
                     .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
@@ -33,11 +34,13 @@ public abstract class AbstractModal implements Interaction {
         } else {
             EmbedBuilder builder = new EmbedBuilder();
             event.getGuild().getTextChannels().forEach(channel -> {
-                if (channel.getName().contains("ticket-") && channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) {
-                    builder.setColor(Color.RED)
-                            .addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false)
-                            .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-                }
+                PermissionOverride override = channel.getPermissionOverride(event.getMember());
+                if (override == null) return;
+                if (!channel.getName().contains("ticket-") || !channel.getPermissionOverride(event.getMember()).getAllowed().contains(Permission.VIEW_CHANNEL)) return;
+
+                builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                        .setColor(Color.RED)
+                        .addField("❌ **Creating ticket failed**", "There is already an opened ticket for you. Please use this instead first or close it -> " + channel.getAsMention(), false);
             });
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         }

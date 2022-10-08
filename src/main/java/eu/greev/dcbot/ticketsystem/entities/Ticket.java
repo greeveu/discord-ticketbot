@@ -3,6 +3,7 @@ package eu.greev.dcbot.ticketsystem.entities;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -18,6 +19,7 @@ public class Ticket {
     @Getter private User supporter;
     @Getter @Builder.Default private String topic = "No topic given";
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
+    @Getter @Setter private String tempMsgId;
     @Getter private final String id;
     @Getter private TextChannel channel;
     private final TicketData ticketData;

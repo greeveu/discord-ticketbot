@@ -18,6 +18,6 @@ public class Custom extends AbstractModal {
 
     @Override
     String getTicketTopic(ModalInteractionEvent event) {
-        return event.getValue("topic").getAsString();
+        return event.getValue("custom").getAsString();
     }
 }

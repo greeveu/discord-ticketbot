@@ -29,7 +29,7 @@ public class SetSupporter extends AbstractCommand {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
             return;
         }
-        if (!event.getMessageChannel().getName().contains("ticket-")) {
+        if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {
             event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
             return;
         }
@@ -38,17 +38,15 @@ public class SetSupporter extends AbstractCommand {
         Member sup = event.getOption("staff").getAsMember();
         if (sup.getRoles().contains(jda.getGuildById(Constants.SERVER_ID).getRoleById(Constants.TEAM_ID)) || !sup.getUser().equals(ticket.getSupporter())) {
             ticket.setSupporter(event.getOption("staff").getAsUser());
-            EmbedBuilder builder = new EmbedBuilder();
-            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-            builder.setColor(Constants.GREEV_GREEN);
-            builder.setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl());
-            builder.addField("✅ **New supporter**", event.getOption("staff").getAsUser().getAsMention() + " is the new supporter", false);
+            EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                    .setColor(Constants.GREEV_GREEN)
+                    .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                    .addField("✅ **New supporter**", event.getOption("staff").getAsUser().getAsMention() + " is the new supporter", false);
             event.replyEmbeds(builder.build()).queue();
         }else {
-            EmbedBuilder builder = new EmbedBuilder();
-            builder.setColor(Color.RED);
-            builder.addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false);
-            builder.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+            EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                    .setColor(Color.RED)
+                    .addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false);
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         }
     }

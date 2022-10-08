@@ -48,14 +48,17 @@ public class TicketData {
 
     public Integer getLastTicketId() {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets ORDER BY ticketID DESC LIMIT 1")
-                .mapTo(Integer.class).findFirst().orElse(0));
+                .mapTo(Integer.class).
+                findFirst()
+                .orElse(0));
     }
 
     public String getTicketIdByChannelId(String channelID) {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE channelID = ?")
                 .bind(0, channelID)
                 .mapTo(String.class)
-                .first());
+                .findFirst()
+                .orElse(null));
     }
 
     public void saveTicket(Ticket ticket) {

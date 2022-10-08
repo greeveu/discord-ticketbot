@@ -35,21 +35,20 @@ public class Setup extends AbstractCommand {
 
         SelectMenu.Builder selectionBuilder = SelectMenu.create("ticket-create-topic")
                 .setPlaceholder("Select your ticket topic")
-                .addOption("select-report", "Report a rulebreaker", "Found someone who broke the rules? Report them here!")
-                .addOption("select-complain", "Submit a complain", "You have a complain? Don't wait to tell us more!")
-                .addOption("select-pardon", "Write a ban- or muteappeal", "Got muted or banned for no reason?")
-                .addOption("select-bug", "Report a bug", "Bugs can be annoying. Better call the exterminator")
-                .addOption("select-question", "Pose a question", "Something is unclear? Don't hesitate to ask!")
-                .addOption("select-custom", "Your own topic", "You have another reason for opening the ticket? Specify!");
+                .addOption("Report a rulebreaker", "select-report","Found someone who broke the rules? Report them here!")
+                .addOption( "Submit a complain","select-complain","You have a complain? Don't wait to tell us more!")
+                .addOption( "Write a ban- or muteappeal","select-pardon","Got muted or banned for no reason?")
+                .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
+                .addOption("Pose a question","select-question","Something is unclear? Don't hesitate to ask!")
+                .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
 
         jda.getTextChannelById(Constants.BASE_CHANNEL).sendMessageEmbeds(builder.build())
                 .setActionRow(selectionBuilder.build())
                 .queue();
 
-        EmbedBuilder builder1 = new EmbedBuilder();
-        builder1.setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl());
-        builder1.addField("✅ **Ticket created**", "Successfully setup ticketsystem " + event.getGuild().getTextChannelById(Constants.BASE_CHANNEL).getAsMention(), false);
-        builder1.setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+        EmbedBuilder builder1 = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                .setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
+                .addField("✅ **Ticket created**", "Successfully setup ticketsystem " + event.getGuild().getTextChannelById(Constants.BASE_CHANNEL).getAsMention(), false);
 
         event.replyEmbeds(builder1.build()).setEphemeral(true).queue();
     }

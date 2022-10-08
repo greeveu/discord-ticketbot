@@ -10,5 +10,7 @@ CREATE TABLE IF NOT EXISTS tickets
 
 	supporter	VARCHAR     DEFAULT ""                  NOT NULL,
 
-	involved    VARCHAR     DEFAULT ""                  NOT NULL
+	involved    VARCHAR     DEFAULT ""                  NOT NULL,
+
+	closer      VARCHAR     DEFAULT ""
 );

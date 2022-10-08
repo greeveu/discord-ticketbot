@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
+import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
@@ -42,8 +43,7 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onSelectMenuInteraction(@NotNull SelectMenuInteractionEvent event) {
         if (event.getSelectMenu().getId() == null || !event.getSelectMenu().getId().equals("ticket-create-topic")) return;
-
-        Main.INTERACTIONS.get(event.getSelectedOptions().get(0).getLabel()).execute(event);
+        Main.INTERACTIONS.get(event.getSelectedOptions().get(0).getValue()).execute(event);
     }
 
     @Override
@@ -58,32 +58,37 @@ public class TicketListener extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-        if (event.isFromGuild() && event.getChannelType().equals(ChannelType.TEXT) && event.getChannel().getName().contains("ticket-") && !event.getAuthor().isBot()) {
-            Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-            if (ticket.getChannel().getName().contains("\uD83D\uDD50")) {
-                ticketService.toggleWaiting(ticket, false);
-            }
-            String content = event.getMessageId() + "} "
-                    + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                    + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
-                    + ":>>> " + event.getMessage().getContentDisplay();
-            new Transcript(ticket)
-                    .addMessage(content);
+        if (isValid(event) || event.getAuthor().isBot()) return;
+
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        if (ticket.getChannel().getName().contains("\uD83D\uDD50")) {
+            ticketService.toggleWaiting(ticket, false);
         }
+        String content = event.getMessageId() + "} "
+                + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
+                + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
+                + ":>>> " + event.getMessage().getContentDisplay();
+        new Transcript(ticket)
+                .addMessage(content);
     }
 
     @Override
     public void onMessageDelete(@NotNull MessageDeleteEvent event) {
         if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || !event.getChannel().getName().contains("ticket-")) return;
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        if (event.getMessageId().equals(ticket.getTempMsgId())) return;
 
-        new Transcript(ticketService.getTicketByChannelId(event.getChannel().getIdLong()))
-                .deleteMessage(event.getMessageId());
+        new Transcript(ticket).deleteMessage(event.getMessageId());
     }
 
     @Override
     public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
-        if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || !event.getChannel().getName().contains("ticket-") || event.getAuthor().isBot()) return;
+        if (isValid(event) || event.getAuthor().isBot()) return;
         new Transcript(ticketService.getTicketByChannelId(event.getChannel().getIdLong()))
                 .editMessage(event.getMessageId(), event.getMessage().getContentDisplay());
+    }
+
+    private boolean isValid(GenericMessageEvent event) {
+        return !event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || !event.getChannel().getName().contains("ticket-");
     }
 }
