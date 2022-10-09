@@ -2,6 +2,7 @@ package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.utils.Constants;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import org.apache.logging.log4j.util.Strings;
@@ -11,14 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
+@AllArgsConstructor
 public class TicketData {
-    private final Jdbi jdbi;
     private final JDA jda;
-
-    public TicketData(JDA jda, Jdbi jdbi) {
-        this.jdbi = jdbi;
-        this.jda = jda;
-    }
+    private final Jdbi jdbi;
 
     protected Ticket loadTicket(String ticketID) {
         Ticket.TicketBuilder ticket = Ticket.builder().ticketData(this).id(ticketID);
@@ -30,6 +27,7 @@ public class TicketData {
                     ticket.channel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")))
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
+                            .info(resultSet.getString("info"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
                     if (!resultSet.getString("supporter").equals(Strings.EMPTY)) {
@@ -62,14 +60,15 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, topic=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, topic=?, info=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
                 .bind(0, ticket.getChannel() != null ? ticket.getChannel().getId() : "")
                 .bind(1, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
-                .bind(2, ticket.getOwner().getId())
-                .bind(3, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
-                .bind(4, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
+                .bind(2, ticket.getInfo())
+                .bind(3, ticket.getOwner().getId())
+                .bind(4, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
+                .bind(5, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
-                .bind(5, ticket.getId())
+                .bind(6, ticket.getId())
                 .execute());
     }
 }

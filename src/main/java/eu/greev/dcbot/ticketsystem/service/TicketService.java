@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.utils.FileUpload;
+import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
@@ -40,28 +41,39 @@ public class TicketService {
     }
 
     public boolean createNewTicket(String info, String topic, User owner) {
-        Ticket ticket = Ticket.builder().id(String.valueOf(ticketData.getLastTicketId() + 1)).ticketData(ticketData).build();
-
         for (TextChannel textChannel : guild.getTextChannels()) {
-            if (textChannel.getName().contains("ticket-") && ticketData.loadTicket(textChannel.getName().replaceAll("\uD83D\uDD50|✓|ticket|-", "")).getOwner().equals(owner)) {
+            Ticket tckt = getTicketByChannelId(textChannel.getIdLong());
+            if (tckt != null && tckt.getOwner().equals(owner)) {
                 return false;
             }
         }
-        TextChannel ticketChannel = guild.createTextChannel("ticket-" + (ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
+        Ticket ticket = Ticket.builder()
+                .id(String.valueOf(ticketData.getLastTicketId() + 1)).ticketData(ticketData)
+                .owner(owner)
+                .topic(topic)
+                .info(info)
+                .build();
+
+        //TODO -> ticket channel name depending on ticket create reason
+
+
+        TextChannel ticketChannel = guild.createTextChannel(generateChannelName(topic, ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
                 .addRolePermissionOverride(Constants.TEAM_ID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .complete();
 
-        ticket.setChannel(ticketChannel).setOwner(owner).setTopic(topic);
-        allCurrentTickets.add(ticket);
-
-        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, owner) VALUES(?, ?, ?)")
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, topic, info, owner) VALUES(?, ?, ?, ?, ?)")
                 .bind(0, ticket.getId())
                 .bind(1, ticketChannel.getId())
-                .bind(2, owner.getId())
+                .bind(2, topic)
+                .bind(3, info)
+                .bind(4, owner.getId())
                 .execute());
+
+        ticket.setChannel(ticketChannel);
+        allCurrentTickets.add(ticket);
 
         EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN)
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
@@ -71,7 +83,7 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
 
-        if (!info.equals("")) {
+        if (!info.equals(Strings.EMPTY)) {
             builder.addField("Information", info, false);
         }
         ticketChannel.sendMessage(owner.getAsMention() + " has created a new ticket").complete();
@@ -131,7 +143,7 @@ public class TicketService {
         }
         ticket.setSupporter(supporter);
         updateTopic(ticket);
-        ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).queue();
+        ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
         EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN)
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "!" + """
                            A member of staff will assist you shortly.
@@ -140,6 +152,9 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+        if (!ticket.getInfo().equals(Strings.EMPTY)) {
+            builder.addField("Information", ticket.getInfo(), false);
+        }
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
         new Transcript(ticket).addMessage(content);
@@ -242,5 +257,24 @@ public class TicketService {
         }else {
             ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
+    }
+
+    private String generateChannelName(String topic, int ticketId) {
+        String name;
+        if (topic.equals("Bugreport")) {
+            name = "bugreport-" + ticketId;
+        } else if (topic.equals("Complain")) {
+            name = "complain-" + ticketId;
+        } else if (topic.equals("Question")) {
+            name = "question-" + ticketId;
+        } else if (topic.contains(" wants pardon ")) {
+            name = "pardon-" + ticketId;
+        } else if (topic.contains(" wants to report ")) {
+            name = "report-" + ticketId;
+        } else {
+            name = "ticket-" + ticketId;
+        }
+
+        return name;
     }
 }

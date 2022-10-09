@@ -18,6 +18,7 @@ public class Pardon extends AbstractModal {
 
     @Override
     String getTicketTopic(ModalInteractionEvent event) {
-        return event.getValue("member").getAsString() + " wants pardon";
+        String banId = event.getValue("ban-id").getAsString();
+        return event.getValue("member").getAsString() + " wants pardon " + (banId.contains("#") ?  banId : "#" + banId);
     }
 }

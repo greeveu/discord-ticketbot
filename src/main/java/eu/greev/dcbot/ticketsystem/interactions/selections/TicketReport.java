@@ -14,17 +14,18 @@ public class TicketReport extends AbstractSelection {
 
         TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Your Minecraft name")
-                .setMinLength(2)
                 .setMaxLength(16)
+                .setRequired(true)
                 .build();
         TextInput hacker = TextInput.create("hacker", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Who do you wanna report?")
-                .setMinLength(2)
                 .setMaxLength(16)
+                .setRequired(true)
                 .build();
         TextInput reason = TextInput.create("reason", "Reason", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("The reason for reporting")
-                .setMinLength(2)
+                .setMaxLength(500)
+                .setRequired(true)
                 .build();
         Modal modal = Modal.create("report", "Give us more information!")
                 .addActionRows(ActionRow.of(member), ActionRow.of(hacker), ActionRow.of(reason))

@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS tickets
 
     topic       VARCHAR     DEFAULT "No topic given"    NOT NULL,
 
+    info        VARCHAR     DEFAULT ""                  NOT NULL,
+
     owner       VARCHAR     DEFAULT ""                  NOT NULL,
 
 	supporter	VARCHAR     DEFAULT ""                  NOT NULL,

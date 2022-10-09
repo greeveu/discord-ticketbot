@@ -13,7 +13,8 @@ public class TicketComplain extends AbstractSelection {
         SelectMenuInteractionEvent event = (SelectMenuInteractionEvent) evt;
         TextInput complain = TextInput.create("complain", "Complain", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Give us more information about your problem")
-                .setMinLength(5)
+                .setMaxLength(500)
+                .setRequired(true)
                 .build();
 
         Modal modal = Modal.create("complain", "Give us more information!")

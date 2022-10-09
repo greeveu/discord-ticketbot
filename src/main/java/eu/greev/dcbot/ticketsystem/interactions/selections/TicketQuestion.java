@@ -14,7 +14,8 @@ public class TicketQuestion extends AbstractSelection {
         SelectMenuInteractionEvent event = (SelectMenuInteractionEvent) etv;
         TextInput question = TextInput.create("question", "Question", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("You have a question? Tell us more!")
-                .setMinLength(5)
+                .setMaxLength(500)
+                .setRequired(true)
                 .build();
 
         Modal modal = Modal.create("question", "Give us more information!")

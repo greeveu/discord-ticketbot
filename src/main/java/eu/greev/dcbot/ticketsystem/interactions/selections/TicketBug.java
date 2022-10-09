@@ -14,7 +14,8 @@ public class TicketBug extends AbstractSelection {
         SelectMenuInteractionEvent event = (SelectMenuInteractionEvent) etv;
         TextInput bug = TextInput.create("bug", "Bug", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Give us more information about the bug")
-                .setMinLength(5)
+                .setMaxLength(500)
+                .setRequired(true)
                 .build();
 
         Modal modal = Modal.create("bug", "Give us more information!")

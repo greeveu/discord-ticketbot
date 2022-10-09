@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,7 @@ public class Ticket {
     @Getter private User owner;
     @Getter private User supporter;
     @Getter @Builder.Default private String topic = "No topic given";
+    @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
     @Getter @Setter private String tempMsgId;
     @Getter private final String id;
@@ -43,8 +45,15 @@ public class Ticket {
         return this;
     }
 
+    public Ticket setInfo(String info) {
+        this.info = info;
+        this.save();
+        return this;
+    }
+
     public Ticket setChannel(TextChannel channel) {
         this.channel = channel;
+        this.save();
         return this;
     }
 

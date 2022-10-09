@@ -17,7 +17,6 @@ import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -36,7 +35,7 @@ public class TicketListener extends ListenerAdapter {
     }
 
     @Override
-    public void onModalInteraction(@Nonnull ModalInteractionEvent event) {
+    public void onModalInteraction(ModalInteractionEvent event) {
         Main.INTERACTIONS.get(event.getModalId()).execute(event);
     }
 

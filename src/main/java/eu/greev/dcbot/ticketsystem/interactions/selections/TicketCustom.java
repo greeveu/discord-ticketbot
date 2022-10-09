@@ -13,7 +13,8 @@ public class TicketCustom extends AbstractSelection {
         SelectMenuInteractionEvent event = (SelectMenuInteractionEvent) evt;
         TextInput custom = TextInput.create("custom", "Custom", TextInputStyle.SHORT)
                 .setPlaceholder("Tell us which topic your ticket should have")
-                .setMinLength(5)
+                .setMaxLength(100)
+                .setRequired(true)
                 .build();
 
         Modal modal = Modal.create("custom", "Your custom ticket topic!")

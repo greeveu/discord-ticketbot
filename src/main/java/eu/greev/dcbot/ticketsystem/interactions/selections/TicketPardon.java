@@ -13,16 +13,23 @@ public class TicketPardon extends AbstractSelection {
         SelectMenuInteractionEvent event = (SelectMenuInteractionEvent) evt;
         TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Your Minecraft name")
-                .setMinLength(2)
                 .setMaxLength(12)
+                .setRequired(true)
                 .build();
         TextInput info = TextInput.create("info", "Description", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Give us more information about your problem")
-                .setMinLength(5)
+                .setMaxLength(500)
+                .setRequired(true)
+                .build();
+
+        TextInput banId = TextInput.create("ban-id", "The ban id", TextInputStyle.SHORT)
+                .setPlaceholder("Give us your ban id, if given")
+                .setRequired(false)
+                .setMaxLength(15)
                 .build();
 
         Modal modal = Modal.create("pardon", "Give us more information!")
-                .addActionRows(ActionRow.of(member), ActionRow.of(info))
+                .addActionRows(ActionRow.of(member), ActionRow.of(info), ActionRow.of(banId))
                 .build();
         event.replyModal(modal).queue();
     }

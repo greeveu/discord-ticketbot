@@ -34,7 +34,7 @@ public class GetTranscript extends AbstractCommand{
                     .setDescription("❌ **Invalid ticket id**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;
-        }
+        } //TODO -> check if ticket is still open
 
         event.getUser().openPrivateChannel()
                 .flatMap(channel -> channel.sendFiles(FileUpload.fromData(new Transcript(ticket).getTranscript())))

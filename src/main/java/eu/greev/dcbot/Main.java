@@ -82,7 +82,7 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
                 .addSubcommands(new SubcommandData("transcript", "Get the transcript of a ticket via DM")
-                        .addOption(OptionType.STRING, "ticket", "The id of the ticket")))
+                        .addOption(OptionType.STRING, "ticket-id", "The id of the ticket")))
                 .queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
@@ -102,7 +102,7 @@ public class Main extends ListenerAdapter {
         registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-supporter", new SetSupporter(staff, jda, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-owner", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("transfer", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-waiting", new SetWaiting(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-topic", new SetTopic(staff, ticketService, wrongChannel, missingPerm));
 
