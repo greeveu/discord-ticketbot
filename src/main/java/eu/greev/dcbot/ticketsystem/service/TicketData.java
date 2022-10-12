@@ -5,6 +5,7 @@ import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.User;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
@@ -42,6 +43,13 @@ public class TicketData {
 
     protected Ticket loadTicket(long ticketChannelID) {
         return this.loadTicket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
+    }
+
+    protected List<String> getTicketIdsByUser(User user) {
+        return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE owner=?")
+                .bind(0, user.getId())
+                .mapTo(String.class)
+                .list());
     }
 
     public Integer getLastTicketId() {

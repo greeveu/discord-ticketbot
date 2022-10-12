@@ -48,7 +48,6 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("ticket")) return;
-
         Main.INTERACTIONS.get(event.getSubcommandName()).execute(event);
     }
 

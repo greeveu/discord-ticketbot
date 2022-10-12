@@ -6,6 +6,8 @@ public class Constants {
     public static final String GREEV_LOGO = "https://cdn.pluoi.com/greev/logo-clear.png";
     public static final String SERVER_NAME = "Greev.eu";
 
+    //TODO -> make discord bot ready for open source
+
     /*correct greev-ids
     public final long TEAM_ID = 344644855760420875L;
     public final long BASE_CHANNEL = 729316606643273808L;

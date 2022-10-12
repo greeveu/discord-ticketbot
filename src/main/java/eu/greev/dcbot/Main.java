@@ -34,7 +34,6 @@ import org.sqlite.SQLiteDataSource;
 
 import java.awt.*;
 import java.io.*;
-import java.net.URISyntaxException;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
@@ -47,12 +46,11 @@ public class Main extends ListenerAdapter {
     private static Jdbi jdbi;
     public static final Map<String, Interaction> INTERACTIONS = new HashMap<>();
 
-    public static void main(String[] args) throws InterruptedException, IOException, URISyntaxException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
         initDatasource();
 
-        YamlFile config = new YamlFile(Main.class.getClassLoader().getResource("token.yml").toURI());
-        config.load();
+        YamlFile config = YamlFile.loadConfiguration(getResourceAsFile("token.yml"));
 
         JDA jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
                 .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
@@ -82,7 +80,9 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
                 .addSubcommands(new SubcommandData("transcript", "Get the transcript of a ticket via DM")
-                        .addOption(OptionType.STRING, "ticket-id", "The id of the ticket")))
+                        .addOption(OptionType.STRING, "ticket-id", "The id of the ticket"))
+                .addSubcommands(new SubcommandData("get-tickets", "Get all ticket ids by member")
+                        .addOption(OptionType.USER, "member", "The owner of the tickets", true)))
                 .queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
@@ -98,6 +98,7 @@ public class Main extends ListenerAdapter {
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
         registerInteraction("setup", new Setup(missingPerm, jda));
         registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
+        registerInteraction("get-tickets", new GetTickets(staff, missingPerm, ticketService));
         registerInteraction("create", new Create(ticketService, ticketData));
         registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
@@ -112,14 +113,12 @@ public class Main extends ListenerAdapter {
         registerInteraction("pardon", new Pardon(ticketService, ticketData));
         registerInteraction("report", new Report(ticketService, ticketData));
         registerInteraction("bug", new Bug(ticketService, ticketData));
-        registerInteraction("question", new Question(ticketService, ticketData));
 
         registerInteraction("select-complain", new TicketComplain());
         registerInteraction("select-custom", new TicketCustom());
         registerInteraction("select-pardon", new TicketPardon());
         registerInteraction("select-report", new TicketReport());
         registerInteraction("select-bug", new TicketBug());
-        registerInteraction("select-question", new TicketQuestion());
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
@@ -146,5 +145,26 @@ public class Main extends ListenerAdapter {
 
     private static void registerInteraction(String identifier, Interaction interaction) {
         INTERACTIONS.put(identifier, interaction);
+    }
+
+    private static File getResourceAsFile(String resourcePath) {
+        try {
+            InputStream in = ClassLoader.getSystemClassLoader().getResourceAsStream(resourcePath);
+            if (in == null) return null;
+
+            File tempFile = File.createTempFile(String.valueOf(in.hashCode()), ".tmp");
+            tempFile.deleteOnExit();
+            try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
+            return tempFile;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

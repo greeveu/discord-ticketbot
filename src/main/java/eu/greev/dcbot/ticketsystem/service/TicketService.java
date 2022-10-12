@@ -12,6 +12,7 @@ import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
@@ -53,9 +54,6 @@ public class TicketService {
                 .topic(topic)
                 .info(info)
                 .build();
-
-        //TODO -> ticket channel name depending on ticket create reason
-
 
         TextChannel ticketChannel = guild.createTextChannel(generateChannelName(topic, ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
@@ -152,7 +150,7 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-        if (!ticket.getInfo().equals(Strings.EMPTY)) {
+        if (!ticket.getInfo().equals(Strings.EMPTY)) { //TODO -> check again if the info gets set
             builder.addField("Information", ticket.getInfo(), false);
         }
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
@@ -169,10 +167,17 @@ public class TicketService {
     }
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
+        String name = ticket.getChannel().getName();
+        TextChannelManager manager = ticket.getChannel().getManager();
         if (waiting) {
-            ticket.getChannel().getManager().setName("\uD83D\uDD50-ticket-" + ticket.getId()).queue();
+            name = name.contains("✓") ? name.replace("✓", "\uD83D\uDD50") : "\uD83D\uDD50-" + name;
+            manager.setName(name).queue();
         }else {
-            ticket.getChannel().getManager().setName("✓-ticket-" + ticket.getId()).queue();
+            if (ticket.getSupporter() != null) {
+                manager.setName("✓-" + name.replace("\uD83D\uDD50", "").replace("✓", "")).queue();
+            } else {
+                manager.setName(name.replace("\uD83D\uDD50", "").replace("✓", "")).queue();
+            }
         }
     }
 
@@ -251,6 +256,10 @@ public class TicketService {
         });
     }
 
+    public List<String> getTicketIdsByOwner(User owner) {
+        return ticketData.getTicketIdsByUser(owner);
+    }
+
     private void updateTopic(Ticket ticket) {
         if (ticket.getSupporter() == null) {
             ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
@@ -265,16 +274,13 @@ public class TicketService {
             name = "bugreport-" + ticketId;
         } else if (topic.equals("Complain")) {
             name = "complain-" + ticketId;
-        } else if (topic.equals("Question")) {
-            name = "question-" + ticketId;
-        } else if (topic.contains(" wants pardon ")) {
+        }  else if (topic.contains(" wants pardon ")) {
             name = "pardon-" + ticketId;
         } else if (topic.contains(" wants to report ")) {
             name = "report-" + ticketId;
         } else {
             name = "ticket-" + ticketId;
         }
-
         return name;
     }
 }

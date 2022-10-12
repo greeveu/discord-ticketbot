@@ -27,14 +27,20 @@ public class GetTranscript extends AbstractCommand{
             return;
         }
 
-        Ticket ticket = ticketService.getTicketByTicketId(event.getOption("ticket").getAsString());
+        Ticket ticket = ticketService.getTicketByTicketId(event.getOption("ticket-id").getAsString());
         if (ticket == null) {
             EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                     .setColor(Color.RED)
                     .setDescription("❌ **Invalid ticket id**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;
-        } //TODO -> check if ticket is still open
+        } else if (ticket.getChannel() != null) {
+            EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticket is still open**");
+            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+            return;
+        }
 
         event.getUser().openPrivateChannel()
                 .flatMap(channel -> channel.sendFiles(FileUpload.fromData(new Transcript(ticket).getTranscript())))
@@ -42,7 +48,7 @@ public class GetTranscript extends AbstractCommand{
 
         EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                 .setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
-                .setDescription("Sent transcript of ticket " + event.getOption("ticket").getAsString() + " via DM");
+                .setDescription("Sent transcript of ticket " + event.getOption("ticket-id").getAsString() + " via DM");
         event.replyEmbeds(builder.build()).setEphemeral(true).queue();
     }
 }
