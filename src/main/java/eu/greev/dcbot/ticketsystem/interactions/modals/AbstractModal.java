@@ -29,7 +29,7 @@ public abstract class AbstractModal implements Interaction {
         ModalInteractionEvent event = (ModalInteractionEvent) evt;
 
         if (ticketService.createNewTicket(escapeFormatting(getTicketInfo(event)), escapeFormatting(getTicketTopic(event)), event.getUser())) {
-            Ticket ticket = ticketService.getTicketByTicketId(String.valueOf(ticketData.getLastTicketId()));
+            Ticket ticket = ticketService.getTicketByTicketId(ticketData.getLastTicketId());
             EmbedBuilder builder = new EmbedBuilder().setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
                     .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false)
                     .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);

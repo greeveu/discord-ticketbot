@@ -9,7 +9,7 @@ import java.util.List;
 
 @Slf4j
 public class Transcript {
-    private final String id;
+    private final int id;
     @Getter private final File transcript;
 
     public Transcript(Ticket ticket) {

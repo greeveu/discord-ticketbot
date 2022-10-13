@@ -24,14 +24,14 @@ public class GetTickets extends AbstractCommand{
             event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
             return;
         }
-        List<String> tickets = ticketService.getTicketIdsByOwner(event.getOption("member").getAsUser());
+        List<Integer> tickets = ticketService.getTicketIdsByOwner(event.getOption("member").getAsUser());
         EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO).setColor(Constants.GREEV_GREEN);
 
         if (tickets.isEmpty()) {
             builder.setColor(Color.RED)
                     .setDescription("This user never opened a ticket");
         } else {
-            tickets.forEach(id -> builder.addField(id, "", false).setAuthor("This user opened following tickets:"));
+            tickets.forEach(id -> builder.addField(String.valueOf(id), "", false).setAuthor("This user opened following tickets:"));
         }
         event.replyEmbeds(builder.build()).setEphemeral(true).queue();
     }

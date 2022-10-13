@@ -22,7 +22,7 @@ public class Ticket {
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
     @Getter @Setter private String tempMsgId;
-    @Getter private final String id;
+    @Getter private final int id;
     @Getter private TextChannel channel;
     private final TicketData ticketData;
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);

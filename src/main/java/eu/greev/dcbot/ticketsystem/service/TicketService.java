@@ -45,8 +45,8 @@ public class TicketService {
                 return false;
             }
         }
-        Ticket ticket = Ticket.builder() //TODO check what happens when reaching ticket id 10!!!!!!!!!!!!!!!!
-                .id(String.valueOf(ticketData.getLastTicketId() + 1))
+        Ticket ticket = Ticket.builder()
+                .id(ticketData.getLastTicketId() + 1)
                 .ticketData(ticketData)
                 .owner(owner)
                 .topic(topic)
@@ -134,9 +134,8 @@ public class TicketService {
     }
 
     public boolean claim(Ticket ticket, User supporter) {
-        if (supporter == ticket.getOwner()) {
-            return false;
-        }
+        if (supporter == ticket.getOwner()) return false;
+
         ticket.setSupporter(supporter);
         updateTopic(ticket);
         ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
@@ -156,7 +155,7 @@ public class TicketService {
         new Transcript(ticket).addMessage(content);
         try (BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()))) {
             ticket.getChannel()
-                    .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+                    .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("close", "Close")).queue();
         } catch (IOException e) {
             log.error("Could not get Embed ID from transcript because", e);
         }
@@ -240,9 +239,9 @@ public class TicketService {
         });
     }
 
-    public Ticket getTicketByTicketId(String ticketID) {
+    public Ticket getTicketByTicketId(int ticketID) {
         Optional<Ticket> optionalTicket = allCurrentTickets.stream()
-                .filter(ticket -> ticket.getId().equals(ticketID))
+                .filter(ticket -> ticket.getId() == (ticketID))
                 .findAny();
 
         return optionalTicket.orElseGet(() -> {
@@ -253,7 +252,7 @@ public class TicketService {
         });
     }
 
-    public List<String> getTicketIdsByOwner(User owner) {
+    public List<Integer> getTicketIdsByOwner(User owner) {
         return ticketData.getTicketIdsByUser(owner);
     }
 

@@ -27,7 +27,7 @@ public class GetTranscript extends AbstractCommand{
             return;
         }
 
-        Ticket ticket = ticketService.getTicketByTicketId(event.getOption("ticket-id").getAsString());
+        Ticket ticket = ticketService.getTicketByTicketId(event.getOption("ticket-id").getAsInt());
         if (ticket == null) {
             EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                     .setColor(Color.RED)

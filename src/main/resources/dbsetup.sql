@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS tickets
 (
-	ticketID    VARCHAR     PRIMARY KEY                 NOT NULL,
+	ticketID    INTEGER     PRIMARY KEY                 NOT NULL,
 
     channelID   VARCHAR     DEFAULT ""                  NOT NULL,
 

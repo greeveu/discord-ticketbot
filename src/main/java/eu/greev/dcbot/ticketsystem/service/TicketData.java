@@ -18,7 +18,7 @@ public class TicketData {
     private final JDA jda;
     private final Jdbi jdbi;
 
-    protected Ticket loadTicket(String ticketID) {
+    protected Ticket loadTicket(int ticketID) {
         Ticket.TicketBuilder ticket = Ticket.builder().ticketData(this).id(ticketID);
 
         jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
@@ -42,13 +42,13 @@ public class TicketData {
     }
 
     protected Ticket loadTicket(long ticketChannelID) {
-        return this.loadTicket(getTicketIdByChannelId(Long.toString(ticketChannelID)));
+        return this.loadTicket(getTicketIdByChannelId(ticketChannelID));
     }
 
-    protected List<String> getTicketIdsByUser(User user) {
+    protected List<Integer> getTicketIdsByUser(User user) {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE owner=?")
                 .bind(0, user.getId())
-                .mapTo(String.class)
+                .mapTo(Integer.class)
                 .list());
     }
 
@@ -59,12 +59,12 @@ public class TicketData {
                 .orElse(0));
     }
 
-    public String getTicketIdByChannelId(String channelID) {
+    public Integer getTicketIdByChannelId(long channelID) {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE channelID = ?")
                 .bind(0, channelID)
-                .mapTo(String.class)
+                .mapTo(Integer.class)
                 .findFirst()
-                .orElse(null));
+                .orElse(0));
     }
 
     public void saveTicket(Ticket ticket) {

@@ -80,7 +80,7 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
                 .addSubcommands(new SubcommandData("transcript", "Get the transcript of a ticket via DM")
-                        .addOption(OptionType.STRING, "ticket-id", "The id of the ticket"))
+                        .addOption(OptionType.INTEGER, "ticket-id", "The id of the ticket"))
                 .addSubcommands(new SubcommandData("get-tickets", "Get all ticket ids by member")
                         .addOption(OptionType.USER, "member", "The owner of the tickets", true)))
                 .queue();
