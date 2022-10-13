@@ -45,25 +45,6 @@ public class TicketClaim implements Interaction {
                         .setColor(Constants.GREEV_GREEN)
                         .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                         .addField("✅ **Ticket claimed**", "Your ticket will be handled by " + event.getUser().getAsMention(), false);
-
-                File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
-                try {
-                    BufferedReader reader = new BufferedReader(new FileReader(transcript));
-                    List<String> lines = reader.lines().toList();
-                    reader.close();
-                    EmbedBuilder builder1 = new EmbedBuilder().setColor(new Color(63, 226, 69, 255))
-                            .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
-                        A member of staff will assist you shortly.
-                        In the mean time, please describe your issue in as much detail as possible! :)
-                        """)
-                            .addField("Topic", ticket.getTopic(), false)
-                            .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
-                            .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-
-                    ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("close", "Close")).queue();
-                } catch (IOException e) {
-                    log.error("Failed reading File", e);
-                }
                 event.replyEmbeds(builder.build()).queue();
             } else {
                 EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)

@@ -39,7 +39,6 @@ public class Setup extends AbstractCommand {
                 .addOption( "Submit a complain","select-complain","You have a complain? Don't wait to tell us more!")
                 .addOption( "Write a ban- or muteappeal","select-pardon","Got muted or banned for no reason?")
                 .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
-                .addOption("Pose a question","select-question","Something is unclear? Don't hesitate to ask!")
                 .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
 
         jda.getTextChannelById(Constants.BASE_CHANNEL).sendMessageEmbeds(builder.build())

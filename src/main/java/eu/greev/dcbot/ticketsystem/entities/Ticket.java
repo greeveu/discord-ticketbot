@@ -78,6 +78,6 @@ public class Ticket {
 
     @Override
     public String toString() {
-        return "Id:" + id + ",Channel:" + channel + ",Owner:" + owner + ",Topic:" + topic + ",Supporter:" + supporter + ",Involved:" + involved;
+        return "Id:{" + id + "},Channel:{" + channel + "},Owner:{" + owner + "},Topic:{" + topic + "},Info:{" + info + "},Supporter:{" + supporter + "},Involved:{" + involved + "}";
     }
 }

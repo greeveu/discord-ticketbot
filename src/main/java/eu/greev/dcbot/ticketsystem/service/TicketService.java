@@ -6,10 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.PermissionOverride;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
@@ -48,8 +45,9 @@ public class TicketService {
                 return false;
             }
         }
-        Ticket ticket = Ticket.builder()
-                .id(String.valueOf(ticketData.getLastTicketId() + 1)).ticketData(ticketData)
+        Ticket ticket = Ticket.builder() //TODO check what happens when reaching ticket id 10!!!!!!!!!!!!!!!!
+                .id(String.valueOf(ticketData.getLastTicketId() + 1))
+                .ticketData(ticketData)
                 .owner(owner)
                 .topic(topic)
                 .info(info)
@@ -73,7 +71,7 @@ public class TicketService {
         ticket.setChannel(ticketChannel);
         allCurrentTickets.add(ticket);
 
-        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN)
+        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
                             In the meantime, please describe your issue in as much detail as possible! :)
@@ -142,7 +140,7 @@ public class TicketService {
         ticket.setSupporter(supporter);
         updateTopic(ticket);
         ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
-        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN)
+        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "!" + """
                            A member of staff will assist you shortly.
                            In the mean time, please describe your issue in as much detail as possible! :)
@@ -150,16 +148,15 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
-        if (!ticket.getInfo().equals(Strings.EMPTY)) { //TODO -> check again if the info gets set
+        if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
-        }
+
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
         new Transcript(ticket).addMessage(content);
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()));
-            ticket.getChannel().editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
-            reader.close();
+        try (BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()))) {
+            ticket.getChannel()
+                    .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
         } catch (IOException e) {
             log.error("Could not get Embed ID from transcript because", e);
         }
