@@ -4,6 +4,7 @@ import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.interactions.Interaction;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClaim;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClose;
+import eu.greev.dcbot.ticketsystem.interactions.buttons.GetTranscript;
 import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketConfirm;
 import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketNevermind;
 import eu.greev.dcbot.ticketsystem.interactions.commands.*;
@@ -79,8 +80,8 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
-                .addSubcommands(new SubcommandData("transcript", "Get the transcript of a ticket via DM")
-                        .addOption(OptionType.INTEGER, "ticket-id", "The id of the ticket"))
+                .addSubcommands(new SubcommandData("load-ticket", "Returns info about a ticket")
+                        .addOption(OptionType.INTEGER, "ticket-id", "The id of the ticket", true))
                 .addSubcommands(new SubcommandData("get-tickets", "Get all ticket ids by member")
                         .addOption(OptionType.USER, "member", "The owner of the tickets", true)))
                 .queue();
@@ -97,7 +98,7 @@ public class Main extends ListenerAdapter {
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
         registerInteraction("setup", new Setup(missingPerm, jda));
-        registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
+        registerInteraction("load-ticket", new LoadTicket(staff, missingPerm, ticketService));
         registerInteraction("get-tickets", new GetTickets(staff, missingPerm, ticketService));
         registerInteraction("create", new Create(ticketService, ticketData));
         registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
@@ -113,6 +114,7 @@ public class Main extends ListenerAdapter {
         registerInteraction("pardon", new Pardon(ticketService, ticketData));
         registerInteraction("report", new Report(ticketService, ticketData));
         registerInteraction("bug", new Bug(ticketService, ticketData));
+        registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
 
         registerInteraction("select-complain", new TicketComplain());
         registerInteraction("select-custom", new TicketCustom());

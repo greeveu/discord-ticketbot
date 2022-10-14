@@ -15,9 +15,11 @@ import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
+import java.awt.image.PixelGrabber;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Array;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -108,7 +110,7 @@ public class TicketService {
 
     public void closeTicket(Ticket ticket, boolean wasAccident, Member closer) {
         Transcript transcript = new Transcript(ticket);
-        allCurrentTickets.remove(ticket);
+        ticket.setCloser(closer.getUser());
         if (wasAccident) {
             ticket.getChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());

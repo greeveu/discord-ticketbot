@@ -18,6 +18,7 @@ import java.util.concurrent.Executors;
 public class Ticket {
     @Getter private User owner;
     @Getter private User supporter;
+    @Getter private User closer;
     @Getter @Builder.Default private String topic = "No topic given";
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
@@ -35,6 +36,12 @@ public class Ticket {
 
     public Ticket setSupporter(User supporter) {
         this.supporter = supporter;
+        this.save();
+        return this;
+    }
+
+    public Ticket setCloser(User closer) {
+        this.closer = closer;
         this.save();
         return this;
     }

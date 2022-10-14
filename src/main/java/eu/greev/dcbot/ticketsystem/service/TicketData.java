@@ -38,6 +38,7 @@ public class TicketData {
                     return null;
                 })
                 .findFirst());
+        log.debug(ticket.build().toString());
         return ticket.build();
     }
 
