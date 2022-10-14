@@ -35,10 +35,9 @@ public class Setup extends AbstractCommand {
 
         SelectMenu.Builder selectionBuilder = SelectMenu.create("ticket-create-topic")
                 .setPlaceholder("Select your ticket topic")
-                .addOption("Report a rulebreaker", "select-report","Found someone who broke the rules? Report them here!")
-                .addOption( "Submit a complain","select-complain","You have a complain? Don't wait to tell us more!")
-                .addOption( "Write a ban- or muteappeal","select-pardon","Got muted or banned for no reason?")
                 .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
+                .addOption("Application", "select-application", "The place for Applications and Questions about it.")
+                .addOption( "Write a ban- or muteappeal","select-pardon","Got muted or banned for no reason?")
                 .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
 
         jda.getTextChannelById(Constants.BASE_CHANNEL).sendMessageEmbeds(builder.build())

@@ -34,12 +34,12 @@ public class SetOwner extends AbstractCommand {
         }
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (!event.getOption("member").getAsUser().equals(ticket.getOwner())) {
-            if (ticketService.setOwner(ticket, event.getOption("member").getAsMember())) {
+        if (!event.getOption("staff").getAsUser().equals(ticket.getOwner())) {
+            if (ticketService.setOwner(ticket, event.getOption("staff").getAsMember())) {
                 EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                         .setColor(Constants.GREEV_GREEN)
                         .setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl())
-                        .addField("✅ **New owner**", event.getOption("member").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
+                        .addField("✅ **New owner**", event.getOption("staff").getAsUser().getAsMention() + " is now the new owner of the ticket", false);
                 event.replyEmbeds(builder.build()).queue();
             }else {
                 EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)

@@ -31,10 +31,12 @@ public class TicketData {
                             .info(resultSet.getString("info"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
-                    if (!resultSet.getString("supporter").equals(Strings.EMPTY)) {
-                        jda.retrieveUserById(resultSet.getString("supporter")).complete();
-                        ticket.supporter(jda.getUserById(resultSet.getString("supporter")));
-                    }
+                    if (!resultSet.getString("closer").equals(Strings.EMPTY))
+                        ticket.closer(jda.retrieveUserById(resultSet.getString("closer")).complete());
+
+                    if (!resultSet.getString("supporter").equals(Strings.EMPTY))
+                        ticket.supporter(jda.retrieveUserById(resultSet.getString("supporter")).complete());
+
                     return null;
                 })
                 .findFirst());

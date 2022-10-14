@@ -72,7 +72,7 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onMessageDelete(@NotNull MessageDeleteEvent event) {
-        if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || !event.getChannel().getName().contains("ticket-")) return;
+        if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) return;
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         if (event.getMessageId().equals(ticket.getTempMsgId())) return;
 
@@ -87,6 +87,6 @@ public class TicketListener extends ListenerAdapter {
     }
 
     private boolean isValid(GenericMessageEvent event) {
-        return !event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || !event.getChannel().getName().contains("ticket-");
+        return !event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null;
     }
 }

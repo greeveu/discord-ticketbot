@@ -1,5 +1,6 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
+import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
@@ -31,8 +32,26 @@ public class GetTickets extends AbstractCommand{
             builder.setColor(Color.RED)
                     .setDescription("This user never opened a ticket");
         } else {
-            tickets.forEach(id -> builder.addField(String.valueOf(id), "", false).setAuthor("This user opened following tickets:"));
+            builder.setTitle("This user opened following tickets:");
+            for (Integer id : tickets) {
+                Ticket ticket = ticketService.getTicketByTicketId(id);
+                builder.addField(generateName(ticket.getTopic(), id), ticket.getTopic(), false);
+            }
         }
         event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+    }
+
+    private String generateName(String topic, int ticketId) {
+        String name;
+        if (topic.equals("Bugreport")) {
+            name = "Bugreport #" + ticketId;
+        } else if (topic.contains(" wants pardon ")) {
+            name = "Pardon #" + ticketId;
+        } else if (topic.contains(" apply ")) {
+            name = "Application #" + ticketId;
+        } else {
+            name = "Ticket #" + ticketId;
+        }
+        return name;
     }
 }

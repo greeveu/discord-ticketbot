@@ -19,7 +19,7 @@ public class TicketNevermind extends AbstractButton {
         ButtonInteractionEvent event = (ButtonInteractionEvent) evt;
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         if (ticket.getOwner().equals(event.getUser())) {
-            ticketService.closeTicket(ticket, true, null);
+            ticketService.closeTicket(ticket, true, event.getMember());
         }else {
             EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
                     .addField("❌ **Missing access**", "You can not click this button", false)

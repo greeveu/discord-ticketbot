@@ -4,19 +4,20 @@ import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 
-public class Complain extends AbstractModal {
+public class Application extends AbstractModal {
 
-    public Complain(TicketService ticketService, TicketData ticketData) {
+    public Application(TicketService ticketService, TicketData ticketData) {
         super(ticketService, ticketData);
     }
 
+
     @Override
     String getTicketInfo(ModalInteractionEvent event) {
-        return event.getValue("complain").getAsString();
+        return  event.getValue("info").getAsString();
     }
 
     @Override
     String getTicketTopic(ModalInteractionEvent event) {
-        return "Complain";
+        return event.getValue("member").getAsString() + " wants to apply or has a questions about it";
     }
 }

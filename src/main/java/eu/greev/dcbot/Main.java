@@ -8,8 +8,14 @@ import eu.greev.dcbot.ticketsystem.interactions.buttons.GetTranscript;
 import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketConfirm;
 import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketNevermind;
 import eu.greev.dcbot.ticketsystem.interactions.commands.*;
-import eu.greev.dcbot.ticketsystem.interactions.modals.*;
-import eu.greev.dcbot.ticketsystem.interactions.selections.*;
+import eu.greev.dcbot.ticketsystem.interactions.modals.Application;
+import eu.greev.dcbot.ticketsystem.interactions.modals.Bug;
+import eu.greev.dcbot.ticketsystem.interactions.modals.Custom;
+import eu.greev.dcbot.ticketsystem.interactions.modals.Pardon;
+import eu.greev.dcbot.ticketsystem.interactions.selections.TicketApplication;
+import eu.greev.dcbot.ticketsystem.interactions.selections.TicketBug;
+import eu.greev.dcbot.ticketsystem.interactions.selections.TicketCustom;
+import eu.greev.dcbot.ticketsystem.interactions.selections.TicketPardon;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Constants;
@@ -80,7 +86,7 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.USER, "staff", "The staff member who should be the supporter", true))
                 .addSubcommands(new SubcommandData("set-topic", "Set the topic of the ticket")
                         .addOption(OptionType.STRING, "topic", "The new topic", true))
-                .addSubcommands(new SubcommandData("load-ticket", "Returns info about a ticket")
+                .addSubcommands(new SubcommandData("info", "Returns info about a ticket")
                         .addOption(OptionType.INTEGER, "ticket-id", "The id of the ticket", true))
                 .addSubcommands(new SubcommandData("get-tickets", "Get all ticket ids by member")
                         .addOption(OptionType.USER, "member", "The owner of the tickets", true)))
@@ -98,28 +104,26 @@ public class Main extends ListenerAdapter {
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
         registerInteraction("setup", new Setup(missingPerm, jda));
-        registerInteraction("load-ticket", new LoadTicket(staff, missingPerm, ticketService));
+        registerInteraction("info", new LoadTicket(staff, missingPerm, ticketService));
         registerInteraction("get-tickets", new GetTickets(staff, missingPerm, ticketService));
         registerInteraction("create", new Create(ticketService, ticketData));
         registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-supporter", new SetSupporter(staff, jda, ticketService, wrongChannel, missingPerm));
-        registerInteraction("transfer", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("transfer", new SetSupporter(staff, jda, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-owner", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-waiting", new SetWaiting(staff, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-topic", new SetTopic(staff, ticketService, wrongChannel, missingPerm));
 
         registerInteraction("nevermind", new TicketNevermind(ticketService));
-        registerInteraction("complain", new Complain(ticketService, ticketData));
+        registerInteraction("application", new Application(ticketService, ticketData));
         registerInteraction("custom", new Custom(ticketService, ticketData));
         registerInteraction("pardon", new Pardon(ticketService, ticketData));
-        registerInteraction("report", new Report(ticketService, ticketData));
         registerInteraction("bug", new Bug(ticketService, ticketData));
         registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
 
-        registerInteraction("select-complain", new TicketComplain());
+        registerInteraction("select-application", new TicketApplication());
         registerInteraction("select-custom", new TicketCustom());
         registerInteraction("select-pardon", new TicketPardon());
-        registerInteraction("select-report", new TicketReport());
         registerInteraction("select-bug", new TicketBug());
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));

@@ -34,7 +34,7 @@ public class LoadTicket extends AbstractCommand{
                     .setDescription("❌ **Invalid ticket id**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;
-        } else if (ticket.getChannel() != null) {
+        } else if (ticket.getChannel() != null && event.getGuild().getGuildChannelById(ticket.getChannel().getIdLong()) != null) {
             EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
                     .setColor(Color.RED)
                     .setDescription("❌ **Ticket is still open**");
@@ -48,15 +48,14 @@ public class LoadTicket extends AbstractCommand{
                 .setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
                 .addField("Topic", ticket.getTopic(), false)
                 .addField("Owner", ticket.getOwner().getAsMention(), false)
-                .addField("Supporter", ticket.getSupporter().getAsMention(), false)
-                .addField("Closer", ticket.getOwner().getAsMention(), false);
+                .addField("Closer", ticket.getCloser().getAsMention(), false);
 
-        if (!ticket.getInfo().equals(Strings.EMPTY)) {
+        if (ticket.getSupporter() != null)
+            builder.addField("Supporter", ticket.getSupporter().getAsMention(), false);
+        if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
-        }
-        if (ticket.getInvolved().isEmpty()) {
+        if (ticket.getInvolved().isEmpty())
             builder.addField("Involved", ticket.getInvolved().toString(), false);
-        }
 
         event.replyEmbeds(builder.build())
                 .setActionRow(Button.secondary("transcript", "Get transcript"))

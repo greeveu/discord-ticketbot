@@ -6,7 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.PermissionOverride;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
@@ -15,11 +18,9 @@ import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
-import java.awt.image.PixelGrabber;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.Array;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -230,6 +231,7 @@ public class TicketService {
 
     public Ticket getTicketByChannelId(long idLong) {
         Optional<Ticket> optionalTicket = allCurrentTickets.stream()
+                .filter(ticket -> ticket.getChannel() != null)
                 .filter(ticket -> ticket.getChannel().getIdLong() == idLong)
                 .findAny();
 
@@ -274,8 +276,8 @@ public class TicketService {
             name = "complain-" + ticketId;
         }  else if (topic.contains(" wants pardon ")) {
             name = "pardon-" + ticketId;
-        } else if (topic.contains(" wants to report ")) {
-            name = "report-" + ticketId;
+        } else if (topic.contains(" apply ")) {
+            name = "application-" + ticketId;
         } else {
             name = "ticket-" + ticketId;
         }

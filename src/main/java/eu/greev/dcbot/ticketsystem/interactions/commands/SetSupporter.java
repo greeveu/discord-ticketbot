@@ -2,6 +2,7 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
+import eu.greev.dcbot.ticketsystem.service.Transcript;
 import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -12,6 +13,8 @@ import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 import java.awt.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @AllArgsConstructor
 public class SetSupporter extends AbstractCommand {
@@ -42,6 +45,9 @@ public class SetSupporter extends AbstractCommand {
                     .setColor(Constants.GREEV_GREEN)
                     .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                     .addField("✅ **New supporter**", event.getOption("staff").getAsUser().getAsMention() + " is the new supporter", false);
+            String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
+                    + "> Ticket got transferred to [" + sup.getUser().getName() + "#" + sup.getUser().getDiscriminator() + "].";
+            new Transcript(ticket).addMessage(content);
             event.replyEmbeds(builder.build()).queue();
         }else {
             EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
