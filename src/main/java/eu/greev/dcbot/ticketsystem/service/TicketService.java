@@ -1,7 +1,6 @@
 package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
-import eu.greev.dcbot.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -16,6 +15,7 @@ import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
+import org.simpleyaml.configuration.file.YamlFile;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -29,19 +29,20 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class TicketService {
     private final JDA jda;
+    private final YamlFile config;
     private final Jdbi jdbi;
-    private final Guild guild;
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
 
-    public TicketService(JDA jda, Jdbi jdbi, TicketData ticketData) {
+    public TicketService(JDA jda, Jdbi jdbi, TicketData ticketData, YamlFile config) {
         this.jdbi = jdbi;
         this.jda = jda;
-        this.guild = jda.getGuildById(Constants.SERVER_ID);
+        this.config = config;
         this.ticketData = ticketData;
     }
 
     public boolean createNewTicket(String info, String topic, User owner) {
+        Guild guild = jda.getGuildById(config.getLong("data.serverId"));
         for (TextChannel textChannel : guild.getTextChannels()) {
             Ticket tckt = getTicketByChannelId(textChannel.getIdLong());
             if (tckt != null && tckt.getOwner().equals(owner)) {
@@ -56,9 +57,9 @@ public class TicketService {
                 .info(info)
                 .build();
 
-        TextChannel ticketChannel = guild.createTextChannel(generateChannelName(topic, ticketData.getLastTicketId() + 1), jda.getCategoryById(Constants.SUPPORT_CATEGORY))
+        TextChannel ticketChannel = guild.createTextChannel(generateChannelName(topic, ticketData.getLastTicketId() + 1), jda.getCategoryById(config.getLong("data.supportCategory")))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
-                .addRolePermissionOverride(Constants.TEAM_ID, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
+                .addRolePermissionOverride(config.getLong("data.staffId"), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .complete();
@@ -74,7 +75,7 @@ public class TicketService {
         ticket.setChannel(ticketChannel);
         allCurrentTickets.add(ticket);
 
-        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+        EmbedBuilder builder = new EmbedBuilder().setColor(getColor(config.getString("data.color")))
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
                             In the meantime, please describe your issue in as much detail as possible! :)
@@ -91,8 +92,8 @@ public class TicketService {
                 .setActionRow(Button.primary("claim", "Claim"),
                         Button.danger("close", "Close")).complete().getId();
 
-        EmbedBuilder builder1 = new EmbedBuilder().setColor(Constants.GREEV_GREEN)
-                .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+        EmbedBuilder builder1 = new EmbedBuilder().setColor(getColor(config.getString("data.color")))
+                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
                 .setDescription("""
                     If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
                     This message will delete itself after this minute.
@@ -127,8 +128,8 @@ public class TicketService {
             new Transcript(ticket).addMessage(content);
             EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticket.getId())
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
-                    .setColor(new Color(37, 150, 190))
-                    .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                    .setColor(getColor(config.getString("data.color")))
+                    .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"));
             ticket.getOwner().openPrivateChannel()
                     .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.clean())))
                     .complete();
@@ -142,14 +143,14 @@ public class TicketService {
         ticket.setSupporter(supporter);
         updateTopic(ticket);
         ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
-        EmbedBuilder builder = new EmbedBuilder().setColor(Constants.GREEV_GREEN).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+        EmbedBuilder builder = new EmbedBuilder().setColor(getColor(config.getString("data.color")))
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "!" + """
                            A member of staff will assist you shortly.
                            In the mean time, please describe your issue in as much detail as possible! :)
                            """)
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
-                .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO);
+                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"));
         if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
 
@@ -181,6 +182,7 @@ public class TicketService {
     }
 
     public boolean addUser(Ticket ticket, User user) {
+        Guild guild = ticket.getChannel().getGuild();
         PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
@@ -194,6 +196,7 @@ public class TicketService {
     }
 
     public boolean removeUser(Ticket ticket, User user) {
+        Guild guild = ticket.getChannel().getGuild();
         PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
         if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
@@ -282,5 +285,25 @@ public class TicketService {
             name = "ticket-" + ticketId;
         }
         return name;
+    }
+
+    Color getColor(String colorFormat) {
+        Color color = new Color(63, 226, 69, 255);
+        switch (colorFormat) {
+            case "BLACK" -> color = Color.BLACK;
+            case "BLUE" -> color = Color.BLUE;
+            case "CYAN" -> color = Color.CYAN;
+            case "DARK_GRAY" -> color = Color.DARK_GRAY;
+            case "GRAY" -> color = Color.GRAY;
+            case "GREEN" -> color = Color.GREEN;
+            case "LIGHT_GRAY" -> color = Color.LIGHT_GRAY;
+            case "MAGENTA" -> color = Color.MAGENTA;
+            case "ORANGE" -> color = Color.ORANGE;
+            case "PINK" -> color = Color.PINK;
+            case "RED" -> color = Color.RED;
+            case "WHITE" -> color = Color.WHITE;
+            case "YELLOW" -> color = Color.YELLOW;
+        }
+        return color;
     }
 }

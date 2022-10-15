@@ -1,7 +1,6 @@
 package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
-import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
@@ -25,7 +24,7 @@ public class TicketData {
                 .bind(0, ticketID)
                 .map((resultSet, index, ctx) -> {
                     jda.retrieveUserById(resultSet.getString("owner")).complete();
-                    ticket.channel(jda.getGuildById(Constants.SERVER_ID).getTextChannelById(resultSet.getString("channelID")))
+                    ticket.channel(jda.getTextChannelById(resultSet.getString("channelID")))
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))

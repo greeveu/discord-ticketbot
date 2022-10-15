@@ -2,16 +2,16 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import org.simpleyaml.configuration.file.YamlFile;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -21,7 +21,8 @@ import java.util.List;
 @AllArgsConstructor
 @Slf4j
 public class SetTopic extends AbstractCommand {
-    private final Role staff;
+    private final JDA jda;
+    private final YamlFile config;
     private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
     private final EmbedBuilder missingPerm;
@@ -29,21 +30,32 @@ public class SetTopic extends AbstractCommand {
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        Member member = event.getMember();
-        if (!member.getRoles().contains(staff)) {
-            event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+        if (config.getString("data.serverName") == null) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return;
+        }
+        if (!event.getMember().getRoles().contains(jda.getRoleById(config.getLong("data.staffId")))) {
+            event.replyEmbeds(missingPerm.setFooter(config.getString("data.serverName"), config.getString("data.serverLogo")).build()).setEphemeral(true).queue();
             return;
         }
         if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {
-            event.replyEmbeds(wrongChannel.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
+            event.replyEmbeds(wrongChannel
+                            .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+                            .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
+                            .build())
+                    .setEphemeral(true)
+                    .queue();
             return;
         }
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         ticketService.setTopic(ticket, event.getOption("topic").getAsString());
         EmbedBuilder builder = new EmbedBuilder()
-                .setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
-                .setColor(Constants.GREEV_GREEN)
+                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+                .setColor(getColor(config.getString("data.color")))
                 .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                 .addField("✅ **New Topic**", "Changed topic to '" + event.getOption("topic").getAsString() + "'", false);
         File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
@@ -51,8 +63,8 @@ public class SetTopic extends AbstractCommand {
             BufferedReader reader = new BufferedReader(new FileReader(transcript));
             List<String> lines = reader.lines().toList();
             reader.close();
-            EmbedBuilder builder1 = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
-                    .setColor(Constants.GREEV_GREEN)
+            EmbedBuilder builder1 = new EmbedBuilder().setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+                    .setColor(getColor(config.getString("data.color")))
                     .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
                                    A member of staff will assist you shortly.
                                    In the mean time, please describe your issue in as much detail as possible! :)

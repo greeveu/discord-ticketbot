@@ -18,17 +18,17 @@ import eu.greev.dcbot.ticketsystem.interactions.selections.TicketCustom;
 import eu.greev.dcbot.ticketsystem.interactions.selections.TicketPardon;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.utils.Constants;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
@@ -57,9 +57,13 @@ public class Main extends ListenerAdapter {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
         initDatasource();
 
-        YamlFile config = YamlFile.loadConfiguration(getResourceAsFile("token.yml"));
+        File file = new File("./GreevTickets/config.yml");
+        file.createNewFile();
+        YamlFile config = new YamlFile(file);
+        config.load();
 
-        JDA jda = JDABuilder.create(config.getString("botToken"), List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
+        JDA jda = JDABuilder.create(YamlFile.loadConfiguration(getResourceAsFile("token.yml")).getString("botToken"),
+                        List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
                 .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
                 .setActivity(Activity.listening(" ticket commands."))
                 .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -67,10 +71,26 @@ public class Main extends ListenerAdapter {
                 .build();
         jda.awaitReady();
         TicketData ticketData = new TicketData(jda, jdbi);
-        TicketService ticketService = new TicketService(jda, jdbi, ticketData);
+        TicketService ticketService = new TicketService(jda, jdbi, ticketData, config);
         jda.addEventListener(new TicketListener(ticketService));
-        jda.getGuildById(Constants.SERVER_ID).updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
-                .addSubcommands(new SubcommandData("setup", "Setup the System"))
+
+        /*OptionData colors = new OptionData(OptionType.STRING, "color", "Set the color of the ticket embeds", false)
+                .addChoices(new Command.Choice("BLACK", "BLACK"),
+                new Command.Choice("BLUE", "BLUE"),
+                new Command.Choice("CYAN", "CYAN"),
+                new Command.Choice("DARK_GRAY", "DARK_GRAY"),
+                new Command.Choice("GRAY", "GRAY"),
+                new Command.Choice("GREEN", "GREEN"),
+                new Command.Choice("LIGHT_GRAY", "LIGHT_GRAY"),
+                new Command.Choice("MAGENTA", "MAGENTA"),
+                new Command.Choice("ORANGE", "ORANGE"),
+                new Command.Choice("PINK", "PINK"),
+                new Command.Choice("RED", "RED"),
+                new Command.Choice("WHITE", "WHITE"),
+                new Command.Choice("YELLOW", "YELLOW")
+        );
+
+        jda.updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
                         .addOption(OptionType.USER,"member", "The user adding to the current ticket", true))
                 .addSubcommands(new SubcommandData("remove", "Remove a User from this ticket")
@@ -89,37 +109,42 @@ public class Main extends ListenerAdapter {
                 .addSubcommands(new SubcommandData("info", "Returns info about a ticket")
                         .addOption(OptionType.INTEGER, "ticket-id", "The id of the ticket", true))
                 .addSubcommands(new SubcommandData("get-tickets", "Get all ticket ids by member")
-                        .addOption(OptionType.USER, "member", "The owner of the tickets", true)))
-                .queue();
+                        .addOption(OptionType.USER, "member", "The owner of the tickets", true))
+                .addSubcommands(new SubcommandData("setup", "Setup the System")
+                        .addOption(OptionType.CHANNEL, "base-channel","The channel where the ticket select menu should be", true)
+                        .addOption(OptionType.CHANNEL, "support-category","The category where the tickets should create", true)
+                        .addOption(OptionType.ROLE, "staff","The role which is the team role", true)
+                        .addOptions(colors)))
+                .queue();*/
 
-        EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+        EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
 
-        EmbedBuilder wrongChannel = new EmbedBuilder().setColor(Color.RED).setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO)
+        EmbedBuilder wrongChannel = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Wrong channel**", "You have to use this command in a ticket!", false);
 
-        Role staff = jda.getRoleById(Constants.TEAM_ID);
-        registerInteraction("claim", new TicketClaim(wrongChannel, missingPerm, staff, ticketService));
-        registerInteraction("close", new TicketClose(wrongChannel, missingPerm, ticketService, staff));
+
+        registerInteraction("claim", new TicketClaim(jda, config, wrongChannel, missingPerm, ticketService));
+        registerInteraction("close", new TicketClose(jda, config, wrongChannel, missingPerm, ticketService));
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
-        registerInteraction("setup", new Setup(missingPerm, jda));
-        registerInteraction("info", new LoadTicket(staff, missingPerm, ticketService));
-        registerInteraction("get-tickets", new GetTickets(staff, missingPerm, ticketService));
-        registerInteraction("create", new Create(ticketService, ticketData));
-        registerInteraction("add", new AddMember(staff, ticketService, wrongChannel, missingPerm));
-        registerInteraction("remove", new RemoveMember(staff, ticketService, wrongChannel, missingPerm));
-        registerInteraction("transfer", new SetSupporter(staff, jda, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-owner", new SetOwner(staff, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-waiting", new SetWaiting(staff, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-topic", new SetTopic(staff, ticketService, wrongChannel, missingPerm));
+        registerInteraction("setup", new Setup(missingPerm, jda, config));
+        registerInteraction("info", new LoadTicket(jda, config, missingPerm, ticketService));
+        registerInteraction("get-tickets", new GetTickets(jda, config, missingPerm, ticketService));
+        registerInteraction("create", new Create(config, ticketService, ticketData));
+        registerInteraction("add", new AddMember(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("remove", new RemoveMember(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("transfer", new SetSupporter(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-owner", new SetOwner(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-waiting", new SetWaiting(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("set-topic", new SetTopic(jda, config, ticketService, wrongChannel, missingPerm));
 
-        registerInteraction("nevermind", new TicketNevermind(ticketService));
-        registerInteraction("application", new Application(ticketService, ticketData));
-        registerInteraction("custom", new Custom(ticketService, ticketData));
-        registerInteraction("pardon", new Pardon(ticketService, ticketData));
-        registerInteraction("bug", new Bug(ticketService, ticketData));
-        registerInteraction("transcript", new GetTranscript(staff, missingPerm, ticketService));
+        registerInteraction("nevermind", new TicketNevermind(ticketService, config));
+        registerInteraction("application", new Application(ticketService, ticketData, config));
+        registerInteraction("custom", new Custom(ticketService, ticketData, config));
+        registerInteraction("pardon", new Pardon(ticketService, ticketData, config));
+        registerInteraction("bug", new Bug(ticketService, ticketData, config));
+        registerInteraction("transcript", new GetTranscript(config, ticketService));
 
         registerInteraction("select-application", new TicketApplication());
         registerInteraction("select-custom", new TicketCustom());

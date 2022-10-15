@@ -2,31 +2,41 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.utils.Constants;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import org.simpleyaml.configuration.file.YamlFile;
 
 import java.awt.*;
 import java.util.List;
 
 @AllArgsConstructor
 public class GetTickets extends AbstractCommand{
-    private final Role staff;
+    private final JDA jda;
+    private final YamlFile config;
     private final EmbedBuilder missingPerm;
     private final TicketService ticketService;
 
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (!event.getMember().getRoles().contains(staff)) {
-            event.replyEmbeds(missingPerm.build()).setEphemeral(true).queue();
+        if (config.getString("data.serverName") == null) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return;
+        }
+        if (!event.getMember().getRoles().contains(jda.getRoleById(config.getLong("data.staffId")))) {
+            event.replyEmbeds(missingPerm.setFooter(config.getString("data.serverName"), config.getString("data.serverLogo")).build()).setEphemeral(true).queue();
             return;
         }
         List<Integer> tickets = ticketService.getTicketIdsByOwner(event.getOption("member").getAsUser());
-        EmbedBuilder builder = new EmbedBuilder().setFooter(Constants.SERVER_NAME, Constants.GREEV_LOGO).setColor(Constants.GREEV_GREEN);
+        EmbedBuilder builder = new EmbedBuilder()
+                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+                .setColor(getColor(config.getString("data.color")));
 
         if (tickets.isEmpty()) {
             builder.setColor(Color.RED)

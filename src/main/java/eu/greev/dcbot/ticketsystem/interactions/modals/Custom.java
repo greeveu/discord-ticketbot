@@ -4,11 +4,12 @@ import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import org.apache.logging.log4j.util.Strings;
+import org.simpleyaml.configuration.file.YamlFile;
 
 public class Custom extends AbstractModal {
 
-    public Custom(TicketService ticketService, TicketData ticketData) {
-        super(ticketService, ticketData);
+    public Custom(TicketService ticketService, TicketData ticketData, YamlFile config) {
+        super(config, ticketService, ticketData);
     }
 
     @Override
