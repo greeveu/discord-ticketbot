@@ -1,5 +1,6 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
+import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,18 +12,17 @@ import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
-import org.simpleyaml.configuration.file.YamlFile;
 
 import java.awt.*;
-import java.io.IOException;
 
 @AllArgsConstructor
 @Slf4j
 public class Setup extends AbstractCommand {
+    private final Config config;
     private final EmbedBuilder missingPerm;
     private final JDA jda;
-    private final YamlFile config;
 
     @Override
     public void execute(Event evt) {
@@ -37,101 +37,55 @@ public class Setup extends AbstractCommand {
         long serverId = event.getGuild().getIdLong();
         long staffId = event.getOption("staff").getAsRole().getIdLong();
 
+        EmbedBuilder error = new EmbedBuilder()
+                .setColor(Color.RED)
+                .setFooter(serverName, serverLogo);
+
         if (!(event.getOption("base-channel").getAsChannel() instanceof TextChannel)) {
-            event.replyEmbeds(new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setFooter(serverName, serverLogo)
-                    .addField("❌ **Ticket setup failed**", "Option 'channel' has to be a valid text channel", false)
+            event.replyEmbeds(error.addField("❌ **Ticket setup failed**", "Option 'channel' has to be a valid text channel", false)
                     .build())
                     .setEphemeral(true)
                     .queue();
             return;
         } else if (!(event.getOption("support-category").getAsChannel() instanceof Category)) {
-            event.replyEmbeds(new EmbedBuilder()
-                            .setColor(Color.RED)
-                            .setFooter(serverName, serverLogo)
-                            .addField("❌ **Ticket setup failed**", "Option 'category' has to be a valid category", false)
+            event.replyEmbeds(error.addField("❌ **Ticket setup failed**", "Option 'category' has to be a valid category", false)
                             .build())
                     .setEphemeral(true)
                     .queue();
             return;
         }
+
+        //#3fe245
+        Color color = new Color(63, 226, 69, 255);
+        OptionMapping clr = event.getOption("color");
+        if (clr == null) {
+            config.setColor("#3fe245");
+        } else {
+            try {
+                color = Color.decode(clr.getAsString());
+            } catch (NumberFormatException e) {
+                event.replyEmbeds(error.addField("❌ **Ticket setup failed**", "Option 'color' has to be a hex code", false)
+                        .build())
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+            config.setColor(clr.getAsString());
+        }
+
         TextChannel baseChannel = event.getOption("base-channel").getAsChannel().asTextChannel();
         long supportCategory = event.getOption("support-category").getAsChannel().getIdLong();
 
-        config.set("data.serverName", serverName);
-        config.set("data.serverLogo", serverLogo);
-        config.set("data.serverId", serverId);
-        config.set("data.supportCategory", supportCategory);
-        config.set("data.baseChannel", baseChannel.getIdLong());
-        config.set("data.staffId", staffId);
+        config.setServerName(serverName);
+        config.setServerLogo(serverLogo);
+        config.setServerId(serverId);
+        config.setSupportCategory(supportCategory);
+        config.setBaseChannel(baseChannel.getIdLong());
+        config.setStaffId(staffId);
 
-        Color color = new Color(63, 226, 69, 255);
-        if (event.getOption("color") == null) {
-            config.set("data.color", "GREEV_GREEN");
-        } else {
-            switch (event.getOption("color").getAsString()) {
-                case "BLACK" -> {
-                    color = Color.BLACK;
-                    config.set("data.color", "BLACK");
-                }
-                case "BLUE" -> {
-                    color = Color.BLUE;
-                    config.set("data.color", "BLUE");
-                }
-                case "CYAN" -> {
-                    color = Color.CYAN;
-                    config.set("data.color", "CYAN");
-                }
-                case "DARK_GRAY" -> {
-                    color = Color.DARK_GRAY;
-                    config.set("data.color", "DARK_GRAY");
-                }
-                case "GRAY" -> {
-                    color = Color.GRAY;
-                    config.set("data.color", "GRAY");
-                }
-                case "GREEN" -> {
-                    color = Color.GREEN;
-                    config.set("data.color", "GREEN");
-                }
-                case "LIGHT_GRAY" -> {
-                    color = Color.LIGHT_GRAY;
-                    config.set("data.color", "LIGHT_GRAY");
-                }
-                case "MAGENTA" -> {
-                    color = Color.MAGENTA;
-                    config.set("data.color", "MAGENTA");
-                }
-                case "ORANGE" -> {
-                    color = Color.ORANGE;
-                    config.set("data.color", "ORANGE");
-                }
-                case "PINK" -> {
-                    color = Color.PINK;
-                    config.set("data.color", "PINK");
-                }
-                case "RED" -> {
-                    color = Color.RED;
-                    config.set("data.color", "RED");
-                }
-                case "WHITE" -> {
-                    color = Color.WHITE;
-                    config.set("data.color", "WHITE");
-                }
-                case "YELLOW" -> {
-                    color = Color.YELLOW;
-                    config.set("data.color", "YELLOW");
-                }
-            }
-        }
-        try {
-            config.save();
-        } catch (IOException e) {
-            log.error("Failed saving config", e);
-        }
+        config.dumpConfig("./Tickets/config.yml");
 
-        EmbedBuilder builder = new EmbedBuilder().setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+        EmbedBuilder builder = new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
                 .setColor(color)
                 .addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?

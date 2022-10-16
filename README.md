@@ -5,5 +5,5 @@ The self coded ticket bot of Greev.eu with many features.\
 
 ## How to use?
 
-Copy the source code and paste your bot token in `src/main/resources/token.yml\`
+Copy the source code and paste your bot token in `src/main/resources/token.yml`
 Now start the bot and set up your ticketsystem with `/ticket setup`

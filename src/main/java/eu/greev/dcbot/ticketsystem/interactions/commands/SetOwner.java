@@ -2,20 +2,20 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
+import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import org.simpleyaml.configuration.file.YamlFile;
 
 import java.awt.*;
 
 @AllArgsConstructor
 public class SetOwner extends AbstractCommand {
     private final JDA jda;
-    private final YamlFile config;
+    private final Config config;
     private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
     private final EmbedBuilder missingPerm;
@@ -23,20 +23,19 @@ public class SetOwner extends AbstractCommand {
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (config.getString("data.serverName") == null) {
+        if (config.getServerName() == null) {
             EmbedBuilder error = new EmbedBuilder()
                     .setColor(Color.RED)
                     .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
             event.replyEmbeds(error.build()).setEphemeral(true).queue();
             return;
         }
-        if (!event.getMember().getRoles().contains(jda.getRoleById(config.getLong("data.staffId")))) {
-            event.replyEmbeds(missingPerm.setFooter(config.getString("data.serverName"), config.getString("data.serverLogo")).build()).setEphemeral(true).queue();
+        if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
+            event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
             return;
         }
         if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {
-            event.replyEmbeds(wrongChannel
-                    .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+            event.replyEmbeds(wrongChannel.setFooter(config.getServerName(), config.getServerLogo())
                     .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                     .build())
                     .setEphemeral(true)
@@ -46,13 +45,13 @@ public class SetOwner extends AbstractCommand {
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         EmbedBuilder builder = new EmbedBuilder()
-                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"))
+                .setFooter(config.getServerName(), config.getServerLogo())
                 .setColor(Color.RED);
 
         Member member = event.getOption("staff").getAsMember();
         if (!member.getUser().equals(ticket.getOwner())) {
             if (ticketService.setOwner(ticket, member)) {
-                builder.setColor(getColor(config.getString("data.color")))
+                builder.setColor(Color.decode(config.getColor()))
                         .setAuthor(event.getUser().getName(), event.getUser().getEffectiveAvatarUrl())
                         .addField("✅ **New owner**", member.getAsMention() + " is now the new owner of the ticket", false);
                 event.replyEmbeds(builder.build()).queue();

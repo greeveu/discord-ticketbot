@@ -4,6 +4,7 @@ import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.interactions.Interaction;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
+import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,7 +12,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import org.simpleyaml.configuration.file.YamlFile;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -20,7 +20,7 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 public abstract class AbstractModal implements Interaction {
-    private final YamlFile config;
+    private final Config config;
     private final TicketService ticketService;
     private final TicketData ticketData;
     private final List<String> discordFormattingChars = Arrays.asList("\\", "*", "~", "|", "_", "`");
@@ -28,7 +28,7 @@ public abstract class AbstractModal implements Interaction {
     @Override
     public void execute(Event evt) {
         ModalInteractionEvent event = (ModalInteractionEvent) evt;
-        if (config.getString("data.serverName") == null) {
+        if (config.getServerName() == null) {
             EmbedBuilder error = new EmbedBuilder()
                     .setColor(Color.RED)
                     .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
@@ -36,11 +36,12 @@ public abstract class AbstractModal implements Interaction {
             return;
         }
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
-                .setFooter(config.getString("data.serverName"), config.getString("data.serverLogo"));
+                .setFooter(config.getServerName(), config.getServerLogo());
 
         if (ticketService.createNewTicket(escapeFormatting(getTicketInfo(event)), escapeFormatting(getTicketTopic(event)), event.getUser())) {
             Ticket ticket = ticketService.getTicketByTicketId(ticketData.getLastTicketId());
             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
+                    .setColor(Color.decode(config.getColor()))
                     .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         } else {

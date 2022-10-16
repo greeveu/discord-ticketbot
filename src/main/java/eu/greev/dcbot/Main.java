@@ -18,6 +18,7 @@ import eu.greev.dcbot.ticketsystem.interactions.selections.TicketCustom;
 import eu.greev.dcbot.ticketsystem.interactions.selections.TicketPardon;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
+import eu.greev.dcbot.utils.Config;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -25,10 +26,8 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
@@ -38,6 +37,8 @@ import org.apache.log4j.PropertyConfigurator;
 import org.jdbi.v3.core.Jdbi;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.sqlite.SQLiteDataSource;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.awt.*;
 import java.io.*;
@@ -57,10 +58,16 @@ public class Main extends ListenerAdapter {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
         initDatasource();
 
-        File file = new File("./GreevTickets/config.yml");
-        file.createNewFile();
-        YamlFile config = new YamlFile(file);
-        config.load();
+        File file = new File("./Tickets/config.yml");
+        if (!file.exists()) {
+            file.createNewFile();
+        }
+        Constructor constructor = new Constructor(Config.class);
+        Yaml yaml = new Yaml(constructor);
+        Config config = yaml.load(new FileInputStream(file));
+        if (config == null) {
+            config = new Config();
+        }
 
         JDA jda = JDABuilder.create(YamlFile.loadConfiguration(getResourceAsFile("token.yml")).getString("botToken"),
                         List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
@@ -73,22 +80,6 @@ public class Main extends ListenerAdapter {
         TicketData ticketData = new TicketData(jda, jdbi);
         TicketService ticketService = new TicketService(jda, jdbi, ticketData, config);
         jda.addEventListener(new TicketListener(ticketService));
-
-        /*OptionData colors = new OptionData(OptionType.STRING, "color", "Set the color of the ticket embeds", false)
-                .addChoices(new Command.Choice("BLACK", "BLACK"),
-                new Command.Choice("BLUE", "BLUE"),
-                new Command.Choice("CYAN", "CYAN"),
-                new Command.Choice("DARK_GRAY", "DARK_GRAY"),
-                new Command.Choice("GRAY", "GRAY"),
-                new Command.Choice("GREEN", "GREEN"),
-                new Command.Choice("LIGHT_GRAY", "LIGHT_GRAY"),
-                new Command.Choice("MAGENTA", "MAGENTA"),
-                new Command.Choice("ORANGE", "ORANGE"),
-                new Command.Choice("PINK", "PINK"),
-                new Command.Choice("RED", "RED"),
-                new Command.Choice("WHITE", "WHITE"),
-                new Command.Choice("YELLOW", "YELLOW")
-        );
 
         jda.updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
@@ -114,8 +105,8 @@ public class Main extends ListenerAdapter {
                         .addOption(OptionType.CHANNEL, "base-channel","The channel where the ticket select menu should be", true)
                         .addOption(OptionType.CHANNEL, "support-category","The category where the tickets should create", true)
                         .addOption(OptionType.ROLE, "staff","The role which is the team role", true)
-                        .addOptions(colors)))
-                .queue();*/
+                        .addOption(OptionType.STRING, "color", "The color of the ticket embeds (HEX-Code)", false)))
+                .queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
@@ -123,12 +114,11 @@ public class Main extends ListenerAdapter {
         EmbedBuilder wrongChannel = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Wrong channel**", "You have to use this command in a ticket!", false);
 
-
         registerInteraction("claim", new TicketClaim(jda, config, wrongChannel, missingPerm, ticketService));
         registerInteraction("close", new TicketClose(jda, config, wrongChannel, missingPerm, ticketService));
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
-        registerInteraction("setup", new Setup(missingPerm, jda, config));
+        registerInteraction("setup", new Setup(config, missingPerm, jda));
         registerInteraction("info", new LoadTicket(jda, config, missingPerm, ticketService));
         registerInteraction("get-tickets", new GetTickets(jda, config, missingPerm, ticketService));
         registerInteraction("create", new Create(config, ticketService, ticketData));
@@ -156,9 +146,9 @@ public class Main extends ListenerAdapter {
 
     //just a temp test method: will be removed after testing
     private static void initDatasource() {
-        new File("./GreevTickets").mkdirs();
+        new File("./Tickets").mkdirs();
         SQLiteDataSource ds = new SQLiteDataSource();
-        ds.setUrl("jdbc:sqlite:./GreevTickets/tickets.db");
+        ds.setUrl("jdbc:sqlite:./Tickets/tickets.db");
         jdbi = Jdbi.create(ds);
 
         String setup = "";
