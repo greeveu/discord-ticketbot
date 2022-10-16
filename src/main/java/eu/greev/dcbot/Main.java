@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.exceptions.InvalidTokenException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -56,8 +57,22 @@ public class Main extends ListenerAdapter {
 
     public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
-        initDatasource();
+        JDA jda = null;
+        try {
+            jda = JDABuilder.create(YamlFile.loadConfiguration(getResourceAsFile("token.yml")).getString("botToken"),
+                            List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
+                    .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
+                    .setActivity(Activity.listening(" ticket commands."))
+                    .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
+                    .setStatus(OnlineStatus.ONLINE)
+                    .build();
+        } catch (InvalidTokenException e) {
+            log.error("No valid token provided!");
+            System.exit(1);
+        }
+        jda.awaitReady();
 
+        initDatasource();
         File file = new File("./Tickets/config.yml");
         if (!file.exists()) {
             file.createNewFile();
@@ -65,18 +80,10 @@ public class Main extends ListenerAdapter {
         Constructor constructor = new Constructor(Config.class);
         Yaml yaml = new Yaml(constructor);
         Config config = yaml.load(new FileInputStream(file));
-        if (config == null) {
+        if (config == null)
             config = new Config();
-        }
 
-        JDA jda = JDABuilder.create(YamlFile.loadConfiguration(getResourceAsFile("token.yml")).getString("botToken"),
-                        List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
-                .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
-                .setActivity(Activity.listening(" ticket commands."))
-                .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
-                .setStatus(OnlineStatus.ONLINE)
-                .build();
-        jda.awaitReady();
+
         TicketData ticketData = new TicketData(jda, jdbi);
         TicketService ticketService = new TicketService(jda, jdbi, ticketData, config);
         jda.addEventListener(new TicketListener(ticketService));
@@ -144,7 +151,6 @@ public class Main extends ListenerAdapter {
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
 
-    //just a temp test method: will be removed after testing
     private static void initDatasource() {
         new File("./Tickets").mkdirs();
         SQLiteDataSource ds = new SQLiteDataSource();
