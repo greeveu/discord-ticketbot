@@ -2,7 +2,6 @@ package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.User;
 import org.apache.logging.log4j.util.Strings;
@@ -11,7 +10,6 @@ import org.jdbi.v3.core.Jdbi;
 import java.util.ArrayList;
 import java.util.List;
 
-@Slf4j
 @AllArgsConstructor
 public class TicketData {
     private final JDA jda;
@@ -39,7 +37,6 @@ public class TicketData {
                     return null;
                 })
                 .findFirst());
-        log.debug(ticket.build().toString());
         return ticket.build();
     }
 

@@ -89,7 +89,7 @@ public class Setup extends AbstractCommand {
                 .setColor(color)
                 .addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?
-                        Just click the one of the buttons below or use </ticket create:0> somewhere else.
+                        Just click the one of the buttons below or use </ticket create:1030837558994804847> somewhere else.
                         We will try to handle your ticket as soon as possible.
                         """, false));
 

@@ -48,7 +48,7 @@ public class SetOwner extends AbstractCommand {
                 .setFooter(config.getServerName(), config.getServerLogo())
                 .setColor(Color.RED);
 
-        Member member = event.getOption("staff").getAsMember();
+        Member member = event.getOption("member").getAsMember();
         if (!member.getUser().equals(ticket.getOwner())) {
             if (ticketService.setOwner(ticket, member)) {
                 builder.setColor(Color.decode(config.getColor()))

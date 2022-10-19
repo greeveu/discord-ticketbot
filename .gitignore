@@ -1,4 +1,5 @@
 /.idea/
 /.gradle/
 /build/
-/GreevTickets/
+/Tickets/
+/src/main/resources/token.yml

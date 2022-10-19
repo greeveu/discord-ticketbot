@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.PermissionOverride;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -130,9 +131,13 @@ public class TicketService {
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
                     .setColor(Color.decode(config.getColor()))
                     .setFooter(config.getServerName(), config.getServerLogo());
-            ticket.getOwner().openPrivateChannel()
-                    .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.clean())))
-                    .complete();
+            try {
+                ticket.getOwner().openPrivateChannel()
+                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.clean())))
+                        .complete();
+            } catch (ErrorResponseException e) {
+                log.warn("Couldn't send [" + ticket.getOwner().getName() + "#" + ticket.getOwner().getDiscriminator() + "] their transcript since the creator is a bot");
+            }
             ticket.getChannel().delete().queue();
         }
     }
@@ -144,7 +149,7 @@ public class TicketService {
         updateTopic(ticket);
         ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
-                .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "!" + """
+                .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
                            A member of staff will assist you shortly.
                            In the mean time, please describe your issue in as much detail as possible! :)
                            """)

@@ -14,8 +14,8 @@ public class Transcript {
 
     public Transcript(Ticket ticket) {
         id = ticket.getId();
-        new File("./GreevTickets/transcripts").mkdirs();
-        transcript = new File("./GreevTickets/transcripts/" + id + ".txt");
+        new File("./Tickets/transcripts").mkdirs();
+        transcript = new File("./Tickets/transcripts/" + id + ".txt");
         try {
             if (transcript.createNewFile()) {
                 try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
@@ -38,7 +38,7 @@ public class Transcript {
     }
 
     public void editMessage(String messageId, String content) {
-        File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
+        File temp = new File("./Tickets/transcripts/" + id + ".temp");
         try {
             temp.createNewFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
@@ -65,7 +65,7 @@ public class Transcript {
                     }
                 }
                 transcript.delete();
-                temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
+                temp.renameTo(new File("./Tickets/transcripts/" + id + ".txt"));
             }
         } catch (IOException e) {
             log.error("Could not read transcript of ticket #" + id, e);
@@ -74,7 +74,7 @@ public class Transcript {
 
     public void deleteMessage(String messageId) {
         try {
-            File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
+            File temp = new File("./Tickets/transcripts/" + id + ".temp");
             temp.createNewFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
                  BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
@@ -92,7 +92,7 @@ public class Transcript {
                         writer.newLine();
                     }
                     transcript.delete();
-                    temp.renameTo(new File("./GreevTickets/transcripts/" + id + ".txt"));
+                    temp.renameTo(new File("./Tickets/transcripts/" + id + ".txt"));
                 }
             }
         } catch (IOException e) {
@@ -101,7 +101,7 @@ public class Transcript {
     }
 
     public File clean() {
-        File temp = new File("./GreevTickets/transcripts/" + id + ".temp");
+        File temp = new File("./Tickets/transcripts/" + id + ".temp");
         try {
             temp.createNewFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));

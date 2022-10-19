@@ -83,7 +83,6 @@ public class Main extends ListenerAdapter {
         if (config == null)
             config = new Config();
 
-
         TicketData ticketData = new TicketData(jda, jdbi);
         TicketService ticketService = new TicketService(jda, jdbi, ticketData, config);
         jda.addEventListener(new TicketListener(ticketService));

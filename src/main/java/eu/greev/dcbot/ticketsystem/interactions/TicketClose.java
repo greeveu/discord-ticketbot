@@ -28,12 +28,12 @@ public class TicketClose implements Interaction{
             if (config.getServerName() == null) {
                 EmbedBuilder error = new EmbedBuilder()
                         .setColor(Color.RED)
-                        .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+                        .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:1030837558994804847>!**");
                 event.replyEmbeds(error.build()).setEphemeral(true).queue();
                 return;
             }
             if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
-                event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerName()).build()).setEphemeral(true).queue();
+                event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
                 return;
             }
             if (ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) {

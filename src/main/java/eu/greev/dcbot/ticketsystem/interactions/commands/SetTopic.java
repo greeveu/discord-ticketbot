@@ -58,7 +58,7 @@ public class SetTopic extends AbstractCommand {
                 .setColor(Color.decode(config.getColor()))
                 .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                 .addField("✅ **New Topic**", "Changed topic to '" + event.getOption("topic").getAsString() + "'", false);
-        File transcript = new File("./GreevTickets/transcripts/" + ticket.getId() + ".txt");
+        File transcript = new File("./Tickets/transcripts/" + ticket.getId() + ".txt");
         try {
             BufferedReader reader = new BufferedReader(new FileReader(transcript));
             List<String> lines = reader.lines().toList();
