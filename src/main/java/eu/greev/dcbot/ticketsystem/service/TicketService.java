@@ -2,6 +2,7 @@ package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.utils.Config;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -22,25 +23,20 @@ import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
+@AllArgsConstructor
 public class TicketService {
     private final JDA jda;
     private final Config config;
     private final Jdbi jdbi;
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
-
-    public TicketService(JDA jda, Jdbi jdbi, TicketData ticketData, Config config) {
-        this.jdbi = jdbi;
-        this.jda = jda;
-        this.config = config;
-        this.ticketData = ticketData;
-    }
 
     public boolean createNewTicket(String info, String topic, User owner) {
         Guild guild = jda.getGuildById(config.getServerId());

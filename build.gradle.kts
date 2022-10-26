@@ -5,7 +5,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
 }
 
-group = "de.jjjannik"
+group = "eu.greev"
 
 repositories {
     mavenCentral()
@@ -13,7 +13,9 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion", "JDA", "5.0.0-alpha.21")
+    implementation("net.dv8tion", "JDA", "5.0.0-alpha.22") {
+        exclude("club.minnced", "opus-java")
+    }
     implementation("org.jdbi", "jdbi3-oracle12", "3.32.0")
     implementation("org.slf4j", "slf4j-log4j12", "2.0.1")
     implementation("org.xerial", "sqlite-jdbc", "3.39.3.0")

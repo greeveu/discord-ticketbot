@@ -13,9 +13,10 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
 import java.awt.*;
+import java.util.concurrent.ExecutionException;
 
 @AllArgsConstructor
 @Slf4j
@@ -85,6 +86,15 @@ public class Setup extends AbstractCommand {
 
         config.dumpConfig("./Tickets/config.yml");
 
+        try {
+            event.getGuild().getTextChannelById(config.getBaseChannel()).getIterableHistory()
+                    .takeAsync(1000)
+                    .get()
+                    .forEach(m -> m.delete().queue());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("Could not delete messages", e);
+        }
+
         EmbedBuilder builder = new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
                 .setColor(color)
                 .addField(new MessageEmbed.Field("**Support request**", """
@@ -93,7 +103,7 @@ public class Setup extends AbstractCommand {
                         We will try to handle your ticket as soon as possible.
                         """, false));
 
-        SelectMenu.Builder selectionBuilder = SelectMenu.create("ticket-create-topic")
+        StringSelectMenu.Builder selectionBuilder = StringSelectMenu.create("ticket-create-topic")
                 .setPlaceholder("Select your ticket topic")
                 .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
                 .addOption("Application", "select-application", "The place for Applications and Questions about it.")

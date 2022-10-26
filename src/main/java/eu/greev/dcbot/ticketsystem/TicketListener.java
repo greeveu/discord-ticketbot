@@ -4,29 +4,35 @@ import eu.greev.dcbot.Main;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.ticketsystem.service.Transcript;
+import eu.greev.dcbot.utils.Config;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
+@AllArgsConstructor
 public class TicketListener extends ListenerAdapter {
     private final TicketService ticketService;
-
-    public TicketListener(TicketService ticketService) {
-        this.ticketService = ticketService;
-    }
+    private final Config config;
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
@@ -40,7 +46,7 @@ public class TicketListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSelectMenuInteraction(@NotNull SelectMenuInteractionEvent event) {
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
         if (event.getSelectMenu().getId() == null || !event.getSelectMenu().getId().equals("ticket-create-topic")) return;
         Main.INTERACTIONS.get(event.getSelectedOptions().get(0).getValue()).execute(event);
     }
@@ -84,6 +90,39 @@ public class TicketListener extends ListenerAdapter {
         if (isValid(event) || event.getAuthor().isBot()) return;
         new Transcript(ticketService.getTicketByChannelId(event.getChannel().getIdLong()))
                 .editMessage(event.getMessageId(), event.getMessage().getContentDisplay());
+    }
+
+    @Override
+    public void onGuildUpdateIcon(GuildUpdateIconEvent event) {
+        config.setServerLogo(event.getNewIconUrl());
+        config.dumpConfig("./Tickets/config.yml");
+        try {
+            event.getGuild().getTextChannelById(config.getBaseChannel()).getIterableHistory()
+                    .takeAsync(1000)
+                    .get()
+                    .forEach(m -> m.delete().complete());
+            EmbedBuilder builder = new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
+                    .setColor(Color.decode(config.getColor()))
+                    .addField(new MessageEmbed.Field("**Support request**", """
+                        You have questions or a problem?
+                        Just click the one of the buttons below or use </ticket create:1030837558994804847> somewhere else.
+                        We will try to handle your ticket as soon as possible.
+                        """, false));
+
+            StringSelectMenu.Builder selectionBuilder = StringSelectMenu.create("ticket-create-topic")
+                    .setPlaceholder("Select your ticket topic")
+                    .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
+                    .addOption("Application", "select-application", "The place for Applications and Questions about it.")
+                    .addOption( "Write a ban- or mute appeal","select-pardon","Got muted or banned for no reason?")
+                    .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
+
+            event.getGuild().getTextChannelById(config.getBaseChannel()).sendMessageEmbeds(builder.build())
+                    .setActionRow(selectionBuilder.build())
+                    .queue();
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("An error occurred while handling message history", e);
+            Thread.currentThread().interrupt();
+        }
     }
 
     private boolean isValid(GenericMessageEvent event) {

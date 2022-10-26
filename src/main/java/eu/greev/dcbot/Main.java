@@ -45,6 +45,7 @@ import java.awt.*;
 import java.io.*;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,9 +75,9 @@ public class Main extends ListenerAdapter {
 
         initDatasource();
         File file = new File("./Tickets/config.yml");
-        if (!file.exists()) {
+        if (!file.exists())
             file.createNewFile();
-        }
+
         Constructor constructor = new Constructor(Config.class);
         Yaml yaml = new Yaml(constructor);
         Config config = yaml.load(new FileInputStream(file));
@@ -84,8 +85,8 @@ public class Main extends ListenerAdapter {
             config = new Config();
 
         TicketData ticketData = new TicketData(jda, jdbi);
-        TicketService ticketService = new TicketService(jda, jdbi, ticketData, config);
-        jda.addEventListener(new TicketListener(ticketService));
+        TicketService ticketService = new TicketService(jda, config, jdbi, ticketData);
+        jda.addEventListener(new TicketListener(ticketService, config));
 
         jda.updateCommands().addCommands(Commands.slash("ticket", "Manage the ticket system")
                 .addSubcommands(new SubcommandData("add", "Add a User to this ticket")
@@ -163,10 +164,7 @@ public class Main extends ListenerAdapter {
             log.error("Could not read db setup file", e);
             System.exit(1);
         }
-        String[] queries = setup.split(";");
-        for (String query : queries) {
-            jdbi.withHandle(h -> h.createUpdate(query).execute());
-        }
+        Arrays.stream(setup.split(";")).toList().forEach(query -> jdbi.withHandle(h -> h.createUpdate(query).execute()));
     }
 
     private static void registerInteraction(String identifier, Interaction interaction) {
@@ -183,9 +181,8 @@ public class Main extends ListenerAdapter {
             try (FileOutputStream out = new FileOutputStream(tempFile)) {
                 byte[] buffer = new byte[1024];
                 int bytesRead;
-                while ((bytesRead = in.read(buffer)) != -1) {
+                while ((bytesRead = in.read(buffer)) != -1)
                     out.write(buffer, 0, bytesRead);
-                }
             }
             return tempFile;
         } catch (IOException e) {
