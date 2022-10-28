@@ -169,15 +169,16 @@ public class TicketService {
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
         String name = ticket.getChannel().getName();
+        String waitingEmote = "\uD83D\uDD50";
         TextChannelManager manager = ticket.getChannel().getManager();
         if (waiting) {
-            name = name.contains("✓") ? name.replace("✓", "\uD83D\uDD50") : "\uD83D\uDD50-" + name;
+            name = name.contains("✓") ? name.replace("✓", waitingEmote) : waitingEmote + name;
             manager.setName(name).queue();
         }else {
             if (ticket.getSupporter() != null) {
-                manager.setName("✓-" + name.replace("\uD83D\uDD50", "").replace("✓", "")).queue();
+                manager.setName("✓-" + name.replace(waitingEmote, "").replace("✓", "")).queue();
             } else {
-                manager.setName(name.replace("\uD83D\uDD50", "").replace("✓", "")).queue();
+                manager.setName(name.replace(waitingEmote, "").replace("✓", "")).queue();
             }
         }
     }
