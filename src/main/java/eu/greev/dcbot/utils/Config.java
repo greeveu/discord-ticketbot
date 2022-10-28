@@ -18,6 +18,7 @@ public class Config {
     @Getter @Setter private String serverLogo;
     @Getter @Setter private String serverName;
     @Getter @Setter private String color;
+    @Getter @Setter private String token;
 
     public void dumpConfig(String path) {
         DumperOptions options = new DumperOptions();

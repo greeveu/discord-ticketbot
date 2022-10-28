@@ -35,8 +35,8 @@ import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.apache.log4j.PropertyConfigurator;
+import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
-import org.simpleyaml.configuration.file.YamlFile;
 import org.sqlite.SQLiteDataSource;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -59,21 +59,7 @@ public class Main extends ListenerAdapter {
     public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
         JDA jda = null;
-        try {
-            jda = JDABuilder.create(YamlFile.loadConfiguration(getResourceAsFile("token.yml")).getString("botToken"),
-                            List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
-                    .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
-                    .setActivity(Activity.listening(" ticket commands."))
-                    .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
-                    .setStatus(OnlineStatus.ONLINE)
-                    .build();
-        } catch (InvalidTokenException e) {
-            log.error("No valid token provided!");
-            System.exit(1);
-        }
-        jda.awaitReady();
 
-        initDatasource();
         File file = new File("./Tickets/config.yml");
         if (!file.exists())
             file.createNewFile();
@@ -83,6 +69,27 @@ public class Main extends ListenerAdapter {
         Config config = yaml.load(new FileInputStream(file));
         if (config == null)
             config = new Config();
+
+        if (Strings.isEmpty(config.getToken())) {
+            log.error("No valid token provided!1");
+            System.exit(1);
+        }
+
+        try {
+            jda = JDABuilder.create(config.getToken(),
+                            List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
+                    .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
+                    .setActivity(Activity.listening(" ticket commands."))
+                    .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
+                    .setStatus(OnlineStatus.ONLINE)
+                    .build();
+        } catch (InvalidTokenException e) {
+            log.error("Bot could not be initialized");
+            System.exit(1);
+        }
+        jda.awaitReady();
+
+        initDatasource();
 
         TicketData ticketData = new TicketData(jda, jdbi);
         TicketService ticketService = new TicketService(jda, config, jdbi, ticketData);
