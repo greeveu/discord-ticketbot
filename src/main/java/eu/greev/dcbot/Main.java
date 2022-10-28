@@ -177,24 +177,4 @@ public class Main extends ListenerAdapter {
     private static void registerInteraction(String identifier, Interaction interaction) {
         INTERACTIONS.put(identifier, interaction);
     }
-
-    private static File getResourceAsFile(String resourcePath) {
-        try {
-            InputStream in = ClassLoader.getSystemClassLoader().getResourceAsStream(resourcePath);
-            if (in == null) return null;
-
-            File tempFile = File.createTempFile(String.valueOf(in.hashCode()), ".tmp");
-            tempFile.deleteOnExit();
-            try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = in.read(buffer)) != -1)
-                    out.write(buffer, 0, bytesRead);
-            }
-            return tempFile;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }
