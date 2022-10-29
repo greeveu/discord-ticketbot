@@ -71,7 +71,7 @@ public class Main extends ListenerAdapter {
             config = new Config();
 
         if (Strings.isEmpty(config.getToken())) {
-            log.error("No valid token provided!1");
+            log.error("No valid token provided! Add your bot token into `./Tickets/config.yml`");
             System.exit(1);
         }
 
@@ -84,7 +84,7 @@ public class Main extends ListenerAdapter {
                     .setStatus(OnlineStatus.ONLINE)
                     .build();
         } catch (InvalidTokenException e) {
-            log.error("Bot could not be initialized");
+            log.error("Bot could not be initialized", e);
             System.exit(1);
         }
         jda.awaitReady();

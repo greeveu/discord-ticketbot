@@ -5,5 +5,5 @@ The self coded ticket bot of Greev.eu with many features.\
 
 ## How to use?
 
-Copy the source code and paste your bot token in `src/main/resources/token.yml`
-Now start the bot and set up your ticketsystem with `/ticket setup`
+Copy the built Jar file from this repository, run it the first time and paste afterwards your bot token into `./Tickets/config.yml`\
+Then run the bot again, use `/ticket setup` in Discord and enjoy your new ticket bot :)
