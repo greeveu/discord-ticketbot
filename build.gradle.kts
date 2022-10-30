@@ -35,4 +35,5 @@ tasks.withType<ShadowJar> {
     manifest {
         attributes["Main-Class"] = "eu.greev.dcbot.Main"
     }
+    archiveFileName.set("discord-ticketbot.jar")
 }
