@@ -112,6 +112,7 @@ public class TicketService {
         if (wasAccident) {
             ticket.getChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
+            allCurrentTickets.remove(ticket);
 
             transcript.getTranscript().delete();
         }else {

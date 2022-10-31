@@ -61,6 +61,7 @@ public class Main extends ListenerAdapter {
         JDA jda = null;
 
         File file = new File("./Tickets/config.yml");
+        new File("./Tickets").mkdirs();
         if (!file.exists())
             file.createNewFile();
 
@@ -71,14 +72,14 @@ public class Main extends ListenerAdapter {
             config = new Config();
 
         if (Strings.isEmpty(config.getToken())) {
-            log.error("No valid token provided! Add your bot token into `./Tickets/config.yml`");
+            log.error("No valid token provided! Add your bot token into `./Tickets/config.yml` with the key `token`");
             System.exit(1);
         }
 
         try {
             jda = JDABuilder.create(config.getToken(),
                             List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
-                    .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS)
+                    .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
                     .setActivity(Activity.listening(" ticket commands."))
                     .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
                     .setStatus(OnlineStatus.ONLINE)
@@ -159,7 +160,6 @@ public class Main extends ListenerAdapter {
     }
 
     private static void initDatasource() {
-        new File("./Tickets").mkdirs();
         SQLiteDataSource ds = new SQLiteDataSource();
         ds.setUrl("jdbc:sqlite:./Tickets/tickets.db");
         jdbi = Jdbi.create(ds);
