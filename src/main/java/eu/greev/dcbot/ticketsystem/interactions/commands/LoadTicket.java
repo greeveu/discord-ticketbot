@@ -60,7 +60,7 @@ public class LoadTicket extends AbstractCommand{
             builder.addField("Supporter", ticket.getSupporter().getAsMention(), false);
         if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
-        if (ticket.getInvolved().isEmpty())
+        if (!ticket.getInvolved().isEmpty())
             builder.addField("Involved", ticket.getInvolved().toString(), false);
 
         event.replyEmbeds(builder.build())
