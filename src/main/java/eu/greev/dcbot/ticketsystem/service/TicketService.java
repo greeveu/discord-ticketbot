@@ -141,7 +141,7 @@ public class TicketService {
         if (supporter == ticket.getOwner()) return false;
 
         ticket.setSupporter(supporter);
-        updateTopic(ticket);
+        updateChannelTopic(ticket);
         ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
@@ -205,7 +205,7 @@ public class TicketService {
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + user.getName() + "#" + user.getDiscriminator() + "] got removed from the ticket.";
         new Transcript(ticket).addMessage(content);
-        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
         return true;
     }
@@ -221,7 +221,7 @@ public class TicketService {
                 + "> [" + owner.getEffectiveName() + "#" + owner.getUser().getDiscriminator() + "] is the new ticket owner.";
         new Transcript(ticket).addMessage(content);
         ticket.setOwner(owner.getUser());
-        updateTopic(ticket);
+        updateChannelTopic(ticket);
         return true;
     }
 
@@ -230,7 +230,7 @@ public class TicketService {
                 + "> Set new topic to '" + topic + "'";
         new Transcript(ticket).addMessage(content);
         ticket.setTopic(topic);
-        updateTopic(ticket);
+        updateChannelTopic(ticket);
     }
 
     public Ticket getTicketByChannelId(long idLong) {
@@ -264,7 +264,7 @@ public class TicketService {
         return ticketData.getTicketIdsByUser(owner);
     }
 
-    private void updateTopic(Ticket ticket) {
+    public void updateChannelTopic(Ticket ticket) {
         if (ticket.getSupporter() == null) {
             ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
         }else {

@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @AllArgsConstructor
-public class SetSupporter extends AbstractCommand {
+public class Transfer extends AbstractCommand {
     private final JDA jda;
     private Config config;
     private final TicketService ticketService;
@@ -51,6 +51,7 @@ public class SetSupporter extends AbstractCommand {
         Member sup = event.getOption("staff").getAsMember();
         if (sup.getRoles().contains(jda.getRoleById(config.getStaffId())) || !sup.getUser().equals(ticket.getSupporter())) {
             ticket.setSupporter(sup.getUser());
+            ticketService.updateChannelTopic(ticket);
             EmbedBuilder builder = new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
                     .setColor(Color.decode(config.getColor()))
                     .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())

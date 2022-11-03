@@ -26,7 +26,6 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -52,7 +51,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class Main extends ListenerAdapter {
+public class Main {
     private static Jdbi jdbi;
     public static final Map<String, Interaction> INTERACTIONS = new HashMap<>();
 
@@ -138,7 +137,7 @@ public class Main extends ListenerAdapter {
         registerInteraction("create", new Create(config, ticketService, ticketData));
         registerInteraction("add", new AddMember(jda, config, ticketService, wrongChannel, missingPerm));
         registerInteraction("remove", new RemoveMember(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("transfer", new SetSupporter(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("transfer", new Transfer(jda, config, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-owner", new SetOwner(jda, config, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-waiting", new SetWaiting(jda, config, ticketService, wrongChannel, missingPerm));
         registerInteraction("set-topic", new SetTopic(jda, config, ticketService, wrongChannel, missingPerm));
