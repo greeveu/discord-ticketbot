@@ -46,12 +46,23 @@ public class Transfer extends AbstractCommand {
                     .queue();
             return;
         }
-
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticket.getSupporter() == null) {
-            event.replyEmbeds(new EmbedBuilder().setColor(Color.RED).setDescription("You can not transfer a ticket which wasn't claimed!").setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
+        EmbedBuilder error = new EmbedBuilder()
+                .setColor(Color.RED)
+                .setFooter(config.getServerName(), config.getServerLogo());
+
+         if (ticket.getSupporter() == null) {
+            event.replyEmbeds(error.setDescription("You can not transfer a ticket which wasn't claimed!").build())
+                    .setEphemeral(true)
+                    .queue();
             return;
-        }
+        } else if (ticket.getSupporter().equals(event.getUser())) {
+             event.replyEmbeds(error.setDescription("You can not transfer this ticket since you don't handle it!").build())
+                     .setEphemeral(true)
+                     .queue();
+             return;
+         }
+
         Member sup = event.getOption("staff").getAsMember();
         if (sup.getRoles().contains(jda.getRoleById(config.getStaffId())) || !sup.getUser().equals(ticket.getSupporter())) {
             ticket.setSupporter(sup.getUser());
