@@ -7,7 +7,9 @@ import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
@@ -18,7 +20,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class Transfer extends AbstractCommand {
     private final JDA jda;
-    private Config config;
+    private final Config config;
     private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
     private final EmbedBuilder missingPerm;
@@ -51,13 +53,14 @@ public class Transfer extends AbstractCommand {
                 .setColor(Color.RED)
                 .setFooter(config.getServerName(), config.getServerLogo());
 
-         if (ticket.getSupporter() == null) {
+        if (ticket.getSupporter() == null) {
             event.replyEmbeds(error.setDescription("You can not transfer a ticket which wasn't claimed!").build())
                     .setEphemeral(true)
                     .queue();
             return;
-        } else if (ticket.getSupporter().equals(event.getUser())) {
-             event.replyEmbeds(error.setDescription("You can not transfer this ticket since you don't handle it!").build())
+        }
+         if (ticket.getSupporter().equals(event.getUser()) && !event.getMember().getPermissions().contains(Permission.ADMINISTRATOR)) {
+             event.replyEmbeds(error.setDescription("You can not transfer this ticket since you don't handle it or you don't have enough permissions!").build())
                      .setEphemeral(true)
                      .queue();
              return;
