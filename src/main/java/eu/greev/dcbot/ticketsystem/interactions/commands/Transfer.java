@@ -59,7 +59,7 @@ public class Transfer extends AbstractCommand {
                     .queue();
             return;
         }
-         if (ticket.getSupporter().equals(event.getUser()) && !event.getMember().getPermissions().contains(Permission.ADMINISTRATOR)) {
+         if (!ticket.getSupporter().equals(event.getUser()) && !event.getMember().getPermissions().contains(Permission.ADMINISTRATOR)) {
              event.replyEmbeds(error.setDescription("You can not transfer this ticket since you don't handle it or you don't have enough permissions!").build())
                      .setEphemeral(true)
                      .queue();
