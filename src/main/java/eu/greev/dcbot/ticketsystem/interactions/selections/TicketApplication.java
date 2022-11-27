@@ -13,7 +13,7 @@ public class TicketApplication extends AbstractSelection {
         StringSelectInteractionEvent event = (StringSelectInteractionEvent) evt;
         TextInput member = TextInput.create("member", "Name", TextInputStyle.SHORT)
                 .setPlaceholder("Your Minecraft name")
-                .setMaxLength(12)
+                .setMaxLength(16)
                 .setRequired(true)
                 .build();
 
