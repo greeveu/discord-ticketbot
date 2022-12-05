@@ -61,8 +61,7 @@ public class Main {
 
         File file = new File("./Tickets/config.yml");
         new File("./Tickets").mkdirs();
-        if (!file.exists())
-            file.createNewFile();
+        if (!file.exists()) file.createNewFile();
 
         Constructor constructor = new Constructor(Config.class);
         Yaml yaml = new Yaml(constructor);

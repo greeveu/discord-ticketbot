@@ -47,6 +47,17 @@ public class TicketClaim implements Interaction {
             }
 
             Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+
+            if (ticket.getSupporter() != null) {
+                event.replyEmbeds(new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
+                        .setColor(Color.RED)
+                        .addField("❌ **Failed claiming**", "This ticket is already claimed!", false)
+                        .build())
+                        .setEphemeral(true)
+                        .queue();
+                return;
+            }
+
             if (ticketService.claim(ticket, event.getUser())) {
                 EmbedBuilder builder = new EmbedBuilder()
                         .setFooter(config.getServerName(), config.getServerLogo())
