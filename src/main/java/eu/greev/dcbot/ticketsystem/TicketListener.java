@@ -19,6 +19,8 @@ import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.exceptions.ContextException;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.jetbrains.annotations.NotNull;
@@ -118,8 +120,8 @@ public class TicketListener extends ListenerAdapter {
 
             event.getGuild().getTextChannelById(config.getBaseChannel()).sendMessageEmbeds(builder.build())
                     .setActionRow(selectionBuilder.build())
-                    .queue();
-        } catch (InterruptedException | ExecutionException e) {
+                    .complete();
+        } catch (InterruptedException | ExecutionException | ErrorResponseException e) {
             log.error("An error occurred while handling message history", e);
             Thread.currentThread().interrupt();
         }
