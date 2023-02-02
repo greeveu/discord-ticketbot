@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
-import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
@@ -22,6 +21,7 @@ public class LoadTicket extends AbstractCommand{
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
+        if (!fromGuild(event)) return;
         if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
             event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
             return;

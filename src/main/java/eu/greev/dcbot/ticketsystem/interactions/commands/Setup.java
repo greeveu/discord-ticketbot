@@ -30,6 +30,7 @@ public class Setup extends AbstractCommand {
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
+        if (!fromGuild(event)) return;
         Member member = event.getMember();
         if (!member.getPermissions().contains(Permission.ADMINISTRATOR)) {
             event.replyEmbeds(missingPerm.setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl()).build()).setEphemeral(true).queue();
