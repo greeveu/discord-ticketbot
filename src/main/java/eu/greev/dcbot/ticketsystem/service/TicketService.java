@@ -165,6 +165,8 @@ public class TicketService {
         if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
 
+        ticket.getChannel().getThreadChannels().get(0).addThreadMember(supporter).queue();
+
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
         new Transcript(ticket).addMessage(content);

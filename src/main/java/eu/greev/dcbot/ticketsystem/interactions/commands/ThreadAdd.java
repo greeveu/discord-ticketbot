@@ -36,8 +36,8 @@ public class ThreadAdd extends AbstractCommand {
             event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
             return;
         }
-        if (ticketService.getTicketByChannelId(event.getGuildChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null
-                || event.getChannelType() != ChannelType.GUILD_PRIVATE_THREAD) {
+        if (event.getChannelType() != ChannelType.GUILD_PRIVATE_THREAD
+                || ticketService.getTicketByChannelId(event.getGuildChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null) {
             event.replyEmbeds(wrongChannel
                             .setFooter(config.getServerName(), config.getServerLogo())
                             .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
@@ -46,6 +46,7 @@ public class ThreadAdd extends AbstractCommand {
                             .build())
                     .setEphemeral(true)
                     .queue();
+            return;
         }
 
         ThreadChannel thread = event.getGuildChannel().asThreadChannel();
@@ -57,10 +58,6 @@ public class ThreadAdd extends AbstractCommand {
                     .addField("❌ **Adding staff failed**", "The given member is not part of the team", false).build()).setEphemeral(true).queue();
             return;
         }
-
-        event.replyEmbeds(new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
-                .setColor(Color.RED)
-                .addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false).build()).setEphemeral(true).queue();
 
         if (thread.getMembers().contains(member)) {
             EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)

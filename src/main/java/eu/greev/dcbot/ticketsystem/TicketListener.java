@@ -75,8 +75,7 @@ public class TicketListener extends ListenerAdapter {
 
                 User author = event.getAuthor();
                 event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
-                        .setTitle("❌ **Failed**")
-                        .setDescription(author.getAsMention() + " was so stupid and pinged " + member.getAsMention() + ".\nShame on you!")
+                        .addField("❌ **Failed**", author.getAsMention() + " was so stupid and pinged " + member.getAsMention() + ".\nShame on you!", false)
                         .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
                         .build()).queue();
                 break;
