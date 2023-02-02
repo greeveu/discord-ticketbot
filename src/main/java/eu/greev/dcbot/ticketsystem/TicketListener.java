@@ -8,7 +8,10 @@ import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -55,7 +58,7 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("ticket")) return;
-        Main.INTERACTIONS.get(event.getSubcommandName()).execute(event);
+        Main.INTERACTIONS.get((event.getSubcommandGroup() == null ? "" : event.getSubcommandGroup()) +  event.getSubcommandName()).execute(event);
     }
 
     /*
@@ -63,6 +66,24 @@ public class TicketListener extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+        if (event.getChannelType() == ChannelType.GUILD_PRIVATE_THREAD && event.isFromGuild()
+                && ticketService.getTicketByChannelId(event.getGuildChannel().asThreadChannel().getParentMessageChannel().getIdLong()) != null) {
+
+            for (Member member : event.getMessage().getMentions().getMembers()) {
+                if (member.getRoles().stream().map(Role::getIdLong).toList().contains(config.getStaffId())) continue;
+                event.getGuildChannel().asThreadChannel().removeThreadMember(member).queue();
+
+                User author = event.getAuthor();
+                event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
+                        .setTitle("❌ **Failed**")
+                        .setDescription(author.getAsMention() + " was so stupid and pinged " + member.getAsMention() + ".\nShame on you!")
+                        .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
+                        .build()).queue();
+                break;
+            }
+            return;
+        }
+
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());

@@ -7,11 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.PermissionOverride;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
@@ -103,6 +101,14 @@ public class TicketService {
                 });
         new Transcript(ticket)
                 .addMessage(msgId);
+
+        ThreadChannel thread = ticket.getChannel().createThreadChannel(generateChannelName(ticket.getTopic(), ticket.getId()), true).complete();
+        config.getAddToTicketThread().forEach(id -> {
+            Role role = guild.getRoleById(id);
+            if (role != null) guild.findMembersWithRoles(role).get().forEach(member -> thread.addThreadMember(member).queue());
+            Member member = guild.retrieveMemberById(id).complete();
+            if (member != null) thread.addThreadMember(member).queue();
+        });
         return true;
     }
 
