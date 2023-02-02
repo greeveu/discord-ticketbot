@@ -6,17 +6,20 @@ import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 import java.awt.*;
 
-@AllArgsConstructor
 public class Create extends AbstractCommand {
-    private final Config config;
-    private final TicketService ticketService;
     private final TicketData ticketData;
+
+    public Create(Config config, TicketService ticketService, TicketData ticketData, EmbedBuilder missingPerm, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+        this.ticketData = ticketData;
+    }
 
     @Override
     public void execute(Event evt) {

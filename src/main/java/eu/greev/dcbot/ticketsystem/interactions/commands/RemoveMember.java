@@ -11,13 +11,13 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 
 import java.awt.*;
 
-@AllArgsConstructor
 public class RemoveMember extends AbstractCommand {
-    private final JDA jda;
-    private final Config config;
-    private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
-    private final EmbedBuilder missingPerm;
+
+    public RemoveMember(Config config, TicketService ticketService, EmbedBuilder missingPerm, EmbedBuilder wrongChannel, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+        this.wrongChannel = wrongChannel;
+    }
 
     @Override
     public void execute(Event evt) {

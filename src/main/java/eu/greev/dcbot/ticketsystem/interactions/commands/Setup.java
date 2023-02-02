@@ -1,5 +1,6 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
+import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,14 +17,15 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
-@AllArgsConstructor
 @Slf4j
 public class Setup extends AbstractCommand {
-    private final Config config;
-    private final EmbedBuilder missingPerm;
-    private final JDA jda;
+
+    public Setup(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+    }
 
     @Override
     public void execute(Event evt) {
@@ -83,6 +85,7 @@ public class Setup extends AbstractCommand {
         config.setSupportCategory(supportCategory);
         config.setBaseChannel(baseChannel.getIdLong());
         config.setStaffId(staffId);
+        config.setAddToTicketThread(new ArrayList<>());
 
         config.dumpConfig("./Tickets/config.yml");
 

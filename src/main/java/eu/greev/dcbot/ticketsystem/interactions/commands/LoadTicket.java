@@ -13,12 +13,11 @@ import org.apache.logging.log4j.util.Strings;
 
 import java.awt.*;
 
-@AllArgsConstructor
 public class LoadTicket extends AbstractCommand{
-    private final JDA jda;
-    private final Config config;
-    private final EmbedBuilder missingPerm;
-    private final TicketService ticketService;
+
+    public LoadTicket(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+    }
 
     @Override
     public void execute(Event evt) {

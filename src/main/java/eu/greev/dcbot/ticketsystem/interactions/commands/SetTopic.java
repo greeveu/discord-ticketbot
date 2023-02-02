@@ -18,14 +18,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 
-@AllArgsConstructor
 @Slf4j
 public class SetTopic extends AbstractCommand {
-    private final JDA jda;
-    private final Config config;
-    private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
-    private final EmbedBuilder missingPerm;
+
+    public SetTopic(Config config, TicketService ticketService, EmbedBuilder missingPerm, EmbedBuilder wrongChannel, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+        this.wrongChannel = wrongChannel;
+    }
 
     @Override
     public void execute(Event evt) {

@@ -10,8 +10,8 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 public class TicketBug extends AbstractSelection {
 
     @Override
-    public void execute(Event etv) {
-        StringSelectInteractionEvent event = (StringSelectInteractionEvent) etv;
+    public void execute(Event evt) {
+        StringSelectInteractionEvent event = (StringSelectInteractionEvent) evt;
         TextInput bug = TextInput.create("bug", "Bug", TextInputStyle.PARAGRAPH)
                 .setPlaceholder("Give us more information about the bug")
                 .setMaxLength(500)

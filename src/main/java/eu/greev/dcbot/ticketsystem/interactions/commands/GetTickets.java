@@ -12,12 +12,12 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import java.awt.*;
 import java.util.List;
 
-@AllArgsConstructor
-public class GetTickets extends AbstractCommand{
-    private final JDA jda;
-    private final Config config;
-    private final EmbedBuilder missingPerm;
-    private final TicketService ticketService;
+public class GetTickets extends AbstractCommand {
+
+    public GetTickets(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+    }
+
 
     @Override
     public void execute(Event evt) {
