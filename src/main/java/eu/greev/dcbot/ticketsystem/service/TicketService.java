@@ -105,7 +105,10 @@ public class TicketService {
         ThreadChannel thread = ticket.getChannel().createThreadChannel(generateChannelName(ticket.getTopic(), ticket.getId()), true).complete();
         config.getAddToTicketThread().forEach(id -> {
             Role role = guild.getRoleById(id);
-            if (role != null) guild.findMembersWithRoles(role).get().forEach(member -> thread.addThreadMember(member).queue());
+            if (role != null) {
+                guild.findMembersWithRoles(role).onSuccess(list -> list.forEach(member -> thread.addThreadMember(member).queue()));
+                return;
+            }
             Member member = guild.retrieveMemberById(id).complete();
             if (member != null) thread.addThreadMember(member).queue();
         });

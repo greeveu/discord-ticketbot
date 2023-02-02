@@ -51,6 +51,17 @@ public class ThreadAdd extends AbstractCommand {
         ThreadChannel thread = event.getGuildChannel().asThreadChannel();
         Member member = event.getOption("staff").getAsMember();
 
+        if (!member.getRoles().contains(jda.getRoleById(config.getStaffId()))) {
+            event.replyEmbeds(new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
+                    .setColor(Color.RED)
+                    .addField("❌ **Adding staff failed**", "The given member is not part of the team", false).build()).setEphemeral(true).queue();
+            return;
+        }
+
+        event.replyEmbeds(new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
+                .setColor(Color.RED)
+                .addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false).build()).setEphemeral(true).queue();
+
         if (thread.getMembers().contains(member)) {
             EmbedBuilder builder = new EmbedBuilder().setColor(Color.RED)
                     .setFooter(config.getServerName(), config.getServerLogo())
@@ -61,5 +72,11 @@ public class ThreadAdd extends AbstractCommand {
         }
 
         thread.addThreadMember(member).queue();
+        event.replyEmbeds(new EmbedBuilder().setColor(Color.decode(config.getColor()))
+                        .setFooter(config.getServerName(), config.getServerLogo())
+                        .addField("✅ **Member added**", member.getAsMention() + " got added to the ticket thread", false)
+                        .build())
+                .setEphemeral(true)
+                .queue();
     }
 }

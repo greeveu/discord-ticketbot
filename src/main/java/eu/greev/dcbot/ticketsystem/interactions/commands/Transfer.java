@@ -77,11 +77,10 @@ public class Transfer extends AbstractCommand {
                     + "> Ticket got transferred to [" + sup.getUser().getName() + "#" + sup.getUser().getDiscriminator() + "].";
             new Transcript(ticket).addMessage(content);
             event.replyEmbeds(builder.build()).queue();
-        }else {
-            EmbedBuilder builder = new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
-                    .setColor(Color.RED)
-                    .addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false);
-            event.replyEmbeds(builder.build()).setEphemeral(true).queue();
+            return;
         }
+        event.replyEmbeds(new EmbedBuilder().setFooter(config.getServerName(), config.getServerLogo())
+                .setColor(Color.RED)
+                .addField("❌ **Setting new supporter failed**", "This member is either already the supporter or not a staff member", false).build()).setEphemeral(true).queue();
     }
 }
