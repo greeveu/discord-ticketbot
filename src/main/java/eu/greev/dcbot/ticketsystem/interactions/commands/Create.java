@@ -32,7 +32,7 @@ public class Create extends AbstractCommand {
         if (ticketService.createNewTicket("", topic, event.getUser())) {
             Ticket ticket = ticketService.getTicketByTicketId(ticketData.getLastTicketId());
             EmbedBuilder builder = new EmbedBuilder().setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
-                    .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false)
+                    .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTextChannel().getAsMention(), false)
                     .setColor(Color.decode(config.getColor()))
                     .setFooter(config.getServerName(), config.getServerLogo());
 

@@ -42,7 +42,7 @@ public abstract class AbstractModal implements Interaction {
             Ticket ticket = ticketService.getTicketByTicketId(ticketData.getLastTicketId());
             builder.setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
                     .setColor(Color.decode(config.getColor()))
-                    .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getChannel().getAsMention(), false);
+                    .addField("✅ **Ticket created**", "Successfully created a ticket for you " + ticket.getTextChannel().getAsMention(), false);
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
         } else {
             event.getGuild().getTextChannels().forEach(channel -> {

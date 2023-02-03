@@ -63,10 +63,10 @@ public class SetTopic extends AbstractCommand {
                                    """)
                     .addField("Topic", ticket.getTopic(), false)
                     .setAuthor(ticket.getOwner().getName(),null, ticket.getOwner().getEffectiveAvatarUrl());
-            if (ticket.getChannel().getTopic().split(" \\| ").length > 2) {
-                ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
+            if (ticket.getTextChannel().getTopic().split(" \\| ").length > 2) {
+                ticket.getTextChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.danger("ticket-close", "Close")).queue();
             }else {
-                ticket.getChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
+                ticket.getTextChannel().editMessageEmbedsById(lines.get(1), builder1.build()).setActionRow(Button.primary("ticket-claim", "Claim"),
                         Button.danger("ticket-close", "Close")).queue();
             }
         } catch (IOException e) {

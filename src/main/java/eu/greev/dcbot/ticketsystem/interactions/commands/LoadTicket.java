@@ -34,7 +34,7 @@ public class LoadTicket extends AbstractCommand{
             builder.setDescription("❌ **Invalid ticket id**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;
-        } else if (ticket.getChannel() != null && event.getGuild().getGuildChannelById(ticket.getChannel().getIdLong()) != null) {
+        } else if (ticket.getTextChannel() != null && event.getGuild().getGuildChannelById(ticket.getTextChannel().getIdLong()) != null) {
             builder.setDescription("❌ **Ticket is still open**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;

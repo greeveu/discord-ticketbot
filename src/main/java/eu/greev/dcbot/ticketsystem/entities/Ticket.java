@@ -7,6 +7,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.ArrayList;
@@ -24,7 +25,8 @@ public class Ticket {
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
     @Getter @Setter private String tempMsgId;
     @Getter private final int id;
-    @Getter private TextChannel channel;
+    @Getter private TextChannel textChannel;
+    @Getter private ThreadChannel threadChannel;
     private final TicketData ticketData;
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
 
@@ -58,8 +60,14 @@ public class Ticket {
         return this;
     }
 
-    public Ticket setChannel(TextChannel channel) {
-        this.channel = channel;
+    public Ticket setTextChannel(TextChannel textChannel) {
+        this.textChannel = textChannel;
+        this.save();
+        return this;
+    }
+
+    public Ticket setThreadChannel(ThreadChannel threadChannel) {
+        this.threadChannel = threadChannel;
         this.save();
         return this;
     }
@@ -85,6 +93,6 @@ public class Ticket {
 
     @Override
     public String toString() {
-        return "Id:{" + id + "},Channel:{" + channel + "},Owner:{" + owner + "},Topic:{" + topic + "},Info:{" + info + "},Supporter:{" + supporter + "},Involved:{" + involved + "}";
+        return "Id:{" + id + "},Channel:{" + textChannel + "},Owner:{" + owner + "},Topic:{" + topic + "},Info:{" + info + "},Supporter:{" + supporter + "},Involved:{" + involved + "}";
     }
 }

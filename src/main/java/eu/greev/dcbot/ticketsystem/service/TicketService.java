@@ -57,16 +57,18 @@ public class TicketService {
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .setTopic(owner.getAsMention() + " | " + topic)
                 .complete();
+        ThreadChannel thread = ticketChannel.createThreadChannel("Discussion-" + ticket.getId(), true).complete();
 
-        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, topic, info, owner) VALUES(?, ?, ?, ?, ?)")
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, threadID, topic, info, owner) VALUES(?, ?, ?, ?, ?, ?)")
                 .bind(0, ticket.getId())
                 .bind(1, ticketChannel.getId())
-                .bind(2, topic)
-                .bind(3, info)
-                .bind(4, owner.getId())
+                .bind(2, thread.getId())
+                .bind(3, topic)
+                .bind(4, info)
+                .bind(5, owner.getId())
                 .execute());
 
-        ticket.setChannel(ticketChannel);
+        ticket.setTextChannel(ticketChannel).setThreadChannel(thread);
         allCurrentTickets.add(ticket);
 
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
@@ -102,7 +104,6 @@ public class TicketService {
         new Transcript(ticket)
                 .addMessage(msgId);
 
-        ThreadChannel thread = ticket.getChannel().createThreadChannel(generateChannelName(ticket.getTopic(), ticket.getId()), true).complete();
         config.getAddToTicketThread().forEach(id -> {
             Role role = guild.getRoleById(id);
             if (role != null) {
@@ -119,7 +120,7 @@ public class TicketService {
         Transcript transcript = new Transcript(ticket);
         ticket.setCloser(closer.getUser());
         if (wasAccident) {
-            ticket.getChannel().delete().queue();
+            ticket.getTextChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
             allCurrentTickets.remove(ticket);
 
@@ -144,7 +145,7 @@ public class TicketService {
                 log.warn("Couldn't send [" + ticket.getOwner().getName() + "#" + ticket.getOwner().getDiscriminator() + "] their transcript since an error occurred:\nMeaning:"
                         + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
             }
-            ticket.getChannel().delete().queue();
+            ticket.getTextChannel().delete().queue();
         }
     }
 
@@ -153,7 +154,7 @@ public class TicketService {
 
         ticket.setSupporter(supporter);
         updateChannelTopic(ticket);
-        ticket.getChannel().getManager().setName("✓-" + ticket.getChannel().getName()).queue();
+        ticket.getTextChannel().getManager().setName("✓-" + ticket.getTextChannel().getName()).queue();
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
                            A member of staff will assist you shortly.
@@ -165,16 +166,13 @@ public class TicketService {
         if (!ticket.getInfo().equals(Strings.EMPTY))
             builder.addField("Information", ticket.getInfo(), false);
 
-        Optional<ThreadChannel> optionalThread = ticket.getChannel().getThreadChannels().stream()
-                .filter(thread -> thread.getName().equals(generateChannelName(ticket.getTopic(), ticket.getId())))
-                .findFirst();
-        optionalThread.ifPresent(thread -> thread.addThreadMember(supporter).queue());
+        ticket.getThreadChannel().addThreadMember(supporter).queue();
 
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
         new Transcript(ticket).addMessage(content);
         try (BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()))) {
-            ticket.getChannel()
+            ticket.getTextChannel()
                     .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("close", "Close")).queue();
         } catch (IOException e) {
             log.error("Could not get Embed ID from transcript because", e);
@@ -183,9 +181,9 @@ public class TicketService {
     }
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
-        String name = ticket.getChannel().getName();
+        String name = ticket.getTextChannel().getName();
         String waitingEmote = "\uD83D\uDD50";
-        TextChannelManager manager = ticket.getChannel().getManager();
+        TextChannelManager manager = ticket.getTextChannel().getManager();
         if (waiting) {
             name = name.contains("✓") ? name.replace("✓", waitingEmote) : waitingEmote + name;
             manager.setName(name).queue();
@@ -199,38 +197,38 @@ public class TicketService {
     }
 
     public boolean addUser(Ticket ticket, User user) {
-        Guild guild = ticket.getChannel().getGuild();
-        PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
+        Guild guild = ticket.getTextChannel().getGuild();
+        PermissionOverride permissionOverride = ticket.getTextChannel().getPermissionOverride(guild.getMember(user));
         if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
         }
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + user.getName() + "#" + user.getDiscriminator() + "] got added to the ticket.";
         new Transcript(ticket).addMessage(content);
-        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
         ticket.addInvolved(user.getId());
         return true;
     }
 
     public boolean removeUser(Ticket ticket, User user) {
-        Guild guild = ticket.getChannel().getGuild();
-        PermissionOverride permissionOverride = ticket.getChannel().getPermissionOverride(guild.getMember(user));
+        Guild guild = ticket.getTextChannel().getGuild();
+        PermissionOverride permissionOverride = ticket.getTextChannel().getPermissionOverride(guild.getMember(user));
         if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + user.getName() + "#" + user.getDiscriminator() + "] got removed from the ticket.";
         new Transcript(ticket).addMessage(content);
-        ticket.getChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
+        ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
         return true;
     }
 
     public boolean setOwner(Ticket ticket, Member owner) {
-        if (ticket.getChannel().getPermissionOverride(owner) == null) {
+        if (ticket.getTextChannel().getPermissionOverride(owner) == null) {
             return false;
         }
-        if (!ticket.getChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+        if (!ticket.getTextChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
@@ -251,8 +249,8 @@ public class TicketService {
 
     public Ticket getTicketByChannelId(long idLong) {
         Optional<Ticket> optionalTicket = allCurrentTickets.stream()
-                .filter(ticket -> ticket.getChannel() != null)
-                .filter(ticket -> ticket.getChannel().getIdLong() == idLong)
+                .filter(ticket -> ticket.getTextChannel() != null)
+                .filter(ticket -> ticket.getTextChannel().getIdLong() == idLong)
                 .findAny();
 
         return optionalTicket.orElseGet(() -> {
@@ -282,9 +280,9 @@ public class TicketService {
 
     public void updateChannelTopic(Ticket ticket) {
         if (ticket.getSupporter() == null) {
-            ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
+            ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
         }else {
-            ticket.getChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
+            ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
     }
 

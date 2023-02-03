@@ -22,7 +22,8 @@ public class TicketData {
                 .bind(0, ticketID)
                 .map((resultSet, index, ctx) -> {
                     jda.retrieveUserById(resultSet.getString("owner")).complete();
-                    ticket.channel(jda.getTextChannelById(resultSet.getString("channelID")))
+                    ticket.textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
+                            .threadChannel(jda.getThreadChannelById(resultSet.getString("threadID")))
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
@@ -67,15 +68,16 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, topic=?, info=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
-                .bind(0, ticket.getChannel() != null ? ticket.getChannel().getId() : "")
-                .bind(1, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
-                .bind(2, ticket.getInfo())
-                .bind(3, ticket.getOwner().getId())
-                .bind(4, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
-                .bind(5, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
+                .bind(0, ticket.getTextChannel() != null ? ticket.getTextChannel().getId() : "")
+                .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
+                .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
+                .bind(3, ticket.getInfo())
+                .bind(4, ticket.getOwner().getId())
+                .bind(5, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
+                .bind(6, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
-                .bind(6, ticket.getId())
+                .bind(7, ticket.getId())
                 .execute());
     }
 }
