@@ -57,8 +57,28 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("ticket")) return;
+        if (!event.getName().equals("ticket") || !isValidSlashEvent(event)) return;
         Main.INTERACTIONS.get((event.getSubcommandGroup() == null ? "" : event.getSubcommandGroup() + " ") + event.getSubcommandName()).execute(event);
+    }
+
+    private boolean isValidSlashEvent(SlashCommandInteractionEvent event) {
+        if (!event.isFromGuild()) {
+            event.replyEmbeds(new EmbedBuilder()
+                            .setColor(Color.RED)
+                            .setDescription("You have to use this command in a guild!")
+                            .build())
+                    .setEphemeral(true)
+                    .queue();
+            return false;
+        }
+        if (config.getServerName() == null && !event.getSubcommandName().equals("setup")) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return false;
+        }
+        return true;
     }
 
     /*
@@ -75,7 +95,7 @@ public class TicketListener extends ListenerAdapter {
 
                 User author = event.getAuthor();
                 event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
-                        .addField("❌ **Failed**", author.getAsMention() + " was so stupid and pinged " + member.getAsMention() + ".\nShame on you!", false)
+                        .addField("❌ **Failed**", author.getAsMention() + " messed up and pinged " + member.getAsMention(), false)
                         .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
                         .build()).queue();
                 break;

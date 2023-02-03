@@ -23,14 +23,6 @@ public class Create extends AbstractCommand {
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (!fromGuild(event)) return;
-        if (config.getServerName() == null) {
-            EmbedBuilder error = new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
-            event.replyEmbeds(error.build()).setEphemeral(true).queue();
-            return;
-        }
         String topic;
         if (event.getOption("topic") == null) {
             topic = "No topic given";

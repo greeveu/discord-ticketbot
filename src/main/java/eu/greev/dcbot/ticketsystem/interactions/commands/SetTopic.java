@@ -29,14 +29,6 @@ public class SetTopic extends AbstractCommand {
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (!fromGuild(event)) return;
-        if (config.getServerName() == null) {
-            EmbedBuilder error = new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
-            event.replyEmbeds(error.build()).setEphemeral(true).queue();
-            return;
-        }
         if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
             event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
             return;
