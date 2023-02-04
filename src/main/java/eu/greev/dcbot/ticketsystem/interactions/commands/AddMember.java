@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
-import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
@@ -11,24 +10,17 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 
 import java.awt.*;
 
-@AllArgsConstructor
 public class AddMember extends AbstractCommand {
-    private final JDA jda;
-    private final Config config;
-    private final TicketService ticketService;
     private final EmbedBuilder wrongChannel;
-    private final EmbedBuilder missingPerm;
+
+    public AddMember(Config config, JDA jda, TicketService ticketService, EmbedBuilder wrongChannel, EmbedBuilder missingPerm) {
+        super(config, ticketService, missingPerm, jda);
+        this.wrongChannel = wrongChannel;
+    }
 
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
-        if (config.getServerName() == null) {
-            EmbedBuilder error = new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
-            event.replyEmbeds(error.build()).setEphemeral(true).queue();
-            return;
-        }
         if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
             event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
             return;

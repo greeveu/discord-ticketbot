@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
-import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
@@ -13,25 +12,17 @@ import org.apache.logging.log4j.util.Strings;
 
 import java.awt.*;
 
-@AllArgsConstructor
 public class LoadTicket extends AbstractCommand{
-    private final JDA jda;
-    private final Config config;
-    private final EmbedBuilder missingPerm;
-    private final TicketService ticketService;
+
+    public LoadTicket(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
+        super(config, ticketService, missingPerm, jda);
+    }
 
     @Override
     public void execute(Event evt) {
         SlashCommandInteractionEvent event = (SlashCommandInteractionEvent) evt;
         if (!event.getMember().getRoles().contains(jda.getRoleById(config.getStaffId()))) {
             event.replyEmbeds(missingPerm.setFooter(config.getServerName(), config.getServerLogo()).build()).setEphemeral(true).queue();
-            return;
-        }
-        if (config.getServerName() == null) {
-            EmbedBuilder error = new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
-            event.replyEmbeds(error.build()).setEphemeral(true).queue();
             return;
         }
         int ticketID = event.getOption("ticket-id").getAsInt();
@@ -43,7 +34,7 @@ public class LoadTicket extends AbstractCommand{
             builder.setDescription("❌ **Invalid ticket id**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;
-        } else if (ticket.getChannel() != null && event.getGuild().getGuildChannelById(ticket.getChannel().getIdLong()) != null) {
+        } else if (ticket.getTextChannel() != null && event.getGuild().getGuildChannelById(ticket.getTextChannel().getIdLong()) != null) {
             builder.setDescription("❌ **Ticket is still open**");
             event.replyEmbeds(builder.build()).setEphemeral(true).queue();
             return;

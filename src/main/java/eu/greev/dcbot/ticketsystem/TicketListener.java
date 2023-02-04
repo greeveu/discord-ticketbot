@@ -8,7 +8,10 @@ import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
@@ -19,7 +22,6 @@ import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
@@ -55,8 +57,28 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
-        if (!event.getName().equals("ticket")) return;
-        Main.INTERACTIONS.get(event.getSubcommandName()).execute(event);
+        if (!event.getName().equals("ticket") || !isValidSlashEvent(event)) return;
+        Main.INTERACTIONS.get((event.getSubcommandGroup() == null ? "" : event.getSubcommandGroup() + " ") + event.getSubcommandName()).execute(event);
+    }
+
+    private boolean isValidSlashEvent(SlashCommandInteractionEvent event) {
+        if (!event.isFromGuild()) {
+            event.replyEmbeds(new EmbedBuilder()
+                            .setColor(Color.RED)
+                            .setDescription("You have to use this command in a guild!")
+                            .build())
+                    .setEphemeral(true)
+                    .queue();
+            return false;
+        }
+        if (config.getServerName() == null && !event.getSubcommandName().equals("setup")) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return false;
+        }
+        return true;
     }
 
     /*
@@ -64,10 +86,27 @@ public class TicketListener extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+        if (event.getChannelType() == ChannelType.GUILD_PRIVATE_THREAD && event.isFromGuild()
+                && ticketService.getTicketByChannelId(event.getGuildChannel().asThreadChannel().getParentMessageChannel().getIdLong()) != null) {
+
+            for (Member member : event.getMessage().getMentions().getMembers()) {
+                if (member.getRoles().stream().map(Role::getIdLong).toList().contains(config.getStaffId())) continue;
+                event.getGuildChannel().asThreadChannel().removeThreadMember(member).queue();
+
+                User author = event.getAuthor();
+                event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
+                        .addField("❌ **Failed**", author.getAsMention() + " messed up and pinged " + member.getAsMention(), false)
+                        .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
+                        .build()).queue();
+                break;
+            }
+            return;
+        }
+
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticket.getChannel().getName().contains("\uD83D\uDD50")) {
+        if (ticket.getTextChannel().getName().contains("\uD83D\uDD50")) {
             ticketService.toggleWaiting(ticket, false);
         }
         String content = event.getMessageId() + "} "

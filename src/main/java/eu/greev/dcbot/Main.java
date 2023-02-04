@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.exceptions.InvalidTokenException;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandGroupData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -76,7 +77,7 @@ public class Main {
 
         try {
             jda = JDABuilder.create(config.getToken(),
-                            List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES))
+                            List.of(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_PRESENCES))
                     .disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.EMOJI, CacheFlag.STICKER, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
                     .setActivity(Activity.listening(" ticket commands."))
                     .setChunkingFilter(ChunkingFilter.ALL).setMemberCachePolicy(MemberCachePolicy.ALL)
@@ -118,8 +119,11 @@ public class Main {
                         .addOption(OptionType.CHANNEL, "base-channel","The channel where the ticket select menu should be", true)
                         .addOption(OptionType.CHANNEL, "support-category","The category where the tickets should create", true)
                         .addOption(OptionType.ROLE, "staff","The role which is the team role", true)
-                        .addOption(OptionType.STRING, "color", "The color of the ticket embeds (HEX-Code)", false)))
-                .queue();
+                        .addOption(OptionType.STRING, "color", "The color of the ticket embeds (HEX-Code)", false))
+                .addSubcommandGroups(new SubcommandGroupData("thread", "Manages the ticket thread")
+                        .addSubcommands(new SubcommandData("add", "Add a staff member to the ticket thread")
+                                .addOption(OptionType.USER, "staff", "Staff member to add", true)))
+                ).queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
@@ -131,16 +135,16 @@ public class Main {
         registerInteraction("close", new TicketClose(jda, config, wrongChannel, missingPerm, ticketService));
 
         registerInteraction("ticket-confirm", new TicketConfirm(ticketService));
-        registerInteraction("setup", new Setup(config, missingPerm, jda));
-        registerInteraction("info", new LoadTicket(jda, config, missingPerm, ticketService));
-        registerInteraction("get-tickets", new GetTickets(jda, config, missingPerm, ticketService));
-        registerInteraction("create", new Create(config, ticketService, ticketData));
-        registerInteraction("add", new AddMember(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("remove", new RemoveMember(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("transfer", new Transfer(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-owner", new SetOwner(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-waiting", new SetWaiting(jda, config, ticketService, wrongChannel, missingPerm));
-        registerInteraction("set-topic", new SetTopic(jda, config, ticketService, wrongChannel, missingPerm));
+        registerInteraction("setup", new Setup(config, ticketService, missingPerm, jda));
+        registerInteraction("info", new LoadTicket(config, ticketService, missingPerm, jda));
+        registerInteraction("get-tickets", new GetTickets(config, ticketService, missingPerm, jda));
+        registerInteraction("create", new Create(config, ticketService, ticketData, missingPerm, jda));
+        registerInteraction("add", new AddMember(config, jda, ticketService, wrongChannel, missingPerm));
+        registerInteraction("remove", new RemoveMember(config, ticketService, missingPerm, wrongChannel, jda));
+        registerInteraction("transfer", new Transfer(config, ticketService, missingPerm, wrongChannel, jda));
+        registerInteraction("set-owner", new SetOwner(config, ticketService, missingPerm, wrongChannel, jda));
+        registerInteraction("set-waiting", new SetWaiting(config, ticketService, missingPerm, wrongChannel, jda));
+        registerInteraction("set-topic", new SetTopic(config, ticketService, missingPerm, wrongChannel, jda));
 
         registerInteraction("nevermind", new TicketNevermind(ticketService, config));
         registerInteraction("application", new Application(ticketService, ticketData, config));
@@ -153,6 +157,8 @@ public class Main {
         registerInteraction("select-custom", new TicketCustom());
         registerInteraction("select-pardon", new TicketPardon());
         registerInteraction("select-bug", new TicketBug());
+
+        registerInteraction("thread add", new ThreadAdd(config, ticketService, wrongChannel, missingPerm, jda));
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }

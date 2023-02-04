@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS tickets
 
     channelID   VARCHAR     DEFAULT ""                  NOT NULL,
 
+    threadID    VARCHAR     DEFAULT ""                  NOT NULL,
+
     topic       VARCHAR     DEFAULT "No topic given"    NOT NULL,
 
     info        VARCHAR     DEFAULT ""                  NOT NULL,

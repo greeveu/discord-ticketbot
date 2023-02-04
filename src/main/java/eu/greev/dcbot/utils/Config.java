@@ -8,17 +8,22 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 
 @Slf4j
+@Getter
+@Setter
 public class Config {
-    @Getter @Setter private long serverId;
-    @Getter @Setter private long staffId;
-    @Getter @Setter private long supportCategory;
-    @Getter @Setter private long baseChannel;
-    @Getter @Setter private String serverLogo;
-    @Getter @Setter private String serverName;
-    @Getter @Setter private String color;
-    @Getter @Setter private String token;
+    private long serverId;
+    private long staffId;
+    private long supportCategory;
+    private long baseChannel;
+    private String serverLogo;
+    private String serverName;
+    private String color;
+    private String token;
+    private List<Long> addToTicketThread;
+
 
     public void dumpConfig(String path) {
         DumperOptions options = new DumperOptions();
