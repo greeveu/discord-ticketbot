@@ -23,7 +23,8 @@ public class TicketData {
                 .map((resultSet, index, ctx) -> {
                     jda.retrieveUserById(resultSet.getString("owner")).complete();
                     ticket.textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
-                            .threadChannel(jda.getThreadChannelById(resultSet.getString("threadID")))
+                            .threadChannel(!resultSet.getString("threadID").equals(Strings.EMPTY)
+                                    ? jda.getThreadChannelById(resultSet.getString("threadID")) : null)
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
