@@ -159,6 +159,7 @@ public class Main {
         registerInteraction("select-bug", new TicketBug());
 
         registerInteraction("thread add", new ThreadAdd(config, ticketService, wrongChannel, missingPerm, jda));
+        registerInteraction("thread join", new ThreadJoin(config, ticketService, wrongChannel, missingPerm, jda));
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
