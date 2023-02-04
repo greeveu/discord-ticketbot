@@ -31,7 +31,6 @@ public class ThreadJoin extends AbstractCommand {
             event.replyEmbeds(wrongChannel
                             .setFooter(config.getServerName(), config.getServerLogo())
                             .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
-                            .addField("❌ **Wrong channel**", "You have to use this command in a ticket thread!", false)
                             .build())
                     .setEphemeral(true)
                     .queue();
