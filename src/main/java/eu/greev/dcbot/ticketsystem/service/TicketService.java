@@ -18,9 +18,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.*;
@@ -68,9 +65,6 @@ public class TicketService {
                 .bind(5, owner.getId())
                 .execute());
 
-        ticket.setTextChannel(ticketChannel).setThreadChannel(thread);
-        allCurrentTickets.add(ticket);
-
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
@@ -87,6 +81,10 @@ public class TicketService {
         String msgId = ticketChannel.sendMessageEmbeds(builder.build())
                 .setActionRow(Button.primary("claim", "Claim"),
                         Button.danger("close", "Close")).complete().getId();
+        ticket.setTextChannel(ticketChannel)
+                .setThreadChannel(thread)
+                .setBaseMessage(msgId);
+        allCurrentTickets.add(ticket);
 
         EmbedBuilder builder1 = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setFooter(config.getServerName(), config.getServerLogo())
@@ -101,8 +99,6 @@ public class TicketService {
                     suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {});
                     ticket.setTempMsgId(suc.getId());
                 });
-        new Transcript(ticket)
-                .addMessage(msgId);
 
         config.getAddToTicketThread().forEach(id -> {
             Role role = guild.getRoleById(id);
@@ -125,14 +121,14 @@ public class TicketService {
             allCurrentTickets.remove(ticket);
 
             transcript.getTranscript().delete();
-        }else {
+        } else {
             jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
                     .bind(0, closer.getId())
                     .bind(1, ticket.getId())
                     .execute());
             String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                     + "> [" + closer.getEffectiveName() + "#" + closer.getUser().getDiscriminator() + "] closed the ticket.";
-            new Transcript(ticket).addMessage(content);
+            transcript.addMessage(content);
             EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticket.getId())
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
                     .setColor(Color.decode(config.getColor()))
@@ -171,12 +167,9 @@ public class TicketService {
         String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
         new Transcript(ticket).addMessage(content);
-        try (BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()))) {
-            ticket.getTextChannel()
-                    .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("close", "Close")).queue();
-        } catch (IOException e) {
-            log.error("Could not get Embed ID from transcript because", e);
-        }
+        ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
+                .setActionRow(Button.danger("close", "Close"))
+                .queue();
         return true;
     }
 

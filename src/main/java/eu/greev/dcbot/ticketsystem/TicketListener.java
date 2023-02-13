@@ -121,7 +121,7 @@ public class TicketListener extends ListenerAdapter {
     public void onMessageDelete(@NotNull MessageDeleteEvent event) {
         if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) return;
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (event.getMessageId().equals(ticket.getTempMsgId())) return;
+        if (event.getMessageId().equals(ticket.getBaseMessage())) return;
 
         new Transcript(ticket).deleteMessage(event.getMessageId());
     }

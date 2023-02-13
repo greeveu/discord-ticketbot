@@ -105,7 +105,7 @@ public class Transcript {
         try {
             temp.createNewFile();
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                 BufferedReader reader = new BufferedReader(new FileReader(transcript));) {
+                 BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
                 List<String> lines = reader.lines().toList();
 
                 for (String line : lines) {

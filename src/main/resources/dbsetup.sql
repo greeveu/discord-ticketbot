@@ -16,5 +16,7 @@ CREATE TABLE IF NOT EXISTS tickets
 
 	involved    VARCHAR     DEFAULT ""                  NOT NULL,
 
+    baseMessage VARCHAR     DEFAULT ""                  NOT NULL,
+
 	closer      VARCHAR     DEFAULT ""
 );

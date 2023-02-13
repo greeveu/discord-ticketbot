@@ -23,7 +23,8 @@ public class Ticket {
     @Getter @Builder.Default private String topic = "No topic given";
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
-    @Getter @Setter private String tempMsgId;
+    @Getter @Setter String tempMsgId;
+    @Getter private String baseMessage;
     @Getter private final int id;
     @Getter private TextChannel textChannel;
     @Getter private ThreadChannel threadChannel;
@@ -62,6 +63,12 @@ public class Ticket {
 
     public Ticket setTextChannel(TextChannel textChannel) {
         this.textChannel = textChannel;
+        this.save();
+        return this;
+    }
+
+    public Ticket setBaseMessage(String baseMessage) {
+        this.baseMessage = baseMessage;
         this.save();
         return this;
     }

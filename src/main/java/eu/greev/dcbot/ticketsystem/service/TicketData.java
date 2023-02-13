@@ -28,6 +28,7 @@ public class TicketData {
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
+                            .baseMessage(resultSet.getString("baseMessage"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
                     if (!resultSet.getString("closer").equals(Strings.EMPTY))
@@ -69,7 +70,7 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, owner=?, supporter=?, involved=? WHERE ticketID =?")
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
                 .bind(0, ticket.getTextChannel() != null ? ticket.getTextChannel().getId() : "")
                 .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
                 .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
@@ -78,7 +79,9 @@ public class TicketData {
                 .bind(5, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
                 .bind(6, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
-                .bind(7, ticket.getId())
+                .bind(7, ticket.getBaseMessage())
+
+                .bind(8, ticket.getId())
                 .execute());
     }
 }
