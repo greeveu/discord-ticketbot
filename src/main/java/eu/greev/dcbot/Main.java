@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -122,7 +123,8 @@ public class Main {
                         .addOption(OptionType.STRING, "color", "The color of the ticket embeds (HEX-Code)", false))
                 .addSubcommandGroups(new SubcommandGroupData("thread", "Manages the ticket thread")
                         .addSubcommands(new SubcommandData("add", "Add a staff member to the ticket thread")
-                                .addOption(OptionType.USER, "staff", "Staff member to add", true)))
+                                .addOption(OptionType.USER, "staff", "Staff member to add", true))
+                        .addSubcommands(new SubcommandData("join", "Join the ticket thread")))
                 ).queue();
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED)
@@ -159,6 +161,7 @@ public class Main {
         registerInteraction("select-bug", new TicketBug());
 
         registerInteraction("thread add", new ThreadAdd(config, ticketService, wrongChannel, missingPerm, jda));
+        registerInteraction("thread join", new ThreadJoin(config, ticketService, wrongChannel, missingPerm, jda));
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
