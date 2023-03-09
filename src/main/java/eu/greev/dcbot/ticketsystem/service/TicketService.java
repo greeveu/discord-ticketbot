@@ -31,6 +31,7 @@ public class TicketService {
     private final Jdbi jdbi;
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
+    public static final String WAITING_EMOTE = "\uD83D\uDD50";
 
     public boolean createNewTicket(String info, String topic, User owner) {
         Guild guild = jda.getGuildById(config.getServerId());
@@ -174,18 +175,16 @@ public class TicketService {
     }
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
-        String name = ticket.getTextChannel().getName();
-        String waitingEmote = "\uD83D\uDD50";
         TextChannelManager manager = ticket.getTextChannel().getManager();
+        String channelName = generateChannelName(ticket.getTopic(), ticket.getId());
         if (waiting) {
-            name = name.contains("✓") ? name.replace("✓", waitingEmote) : waitingEmote + name;
-            manager.setName(name).queue();
+            manager.setName(WAITING_EMOTE + "-" + channelName).queue();
         }else {
-            if (ticket.getSupporter() != null) {
-                manager.setName("✓-" + name.replace(waitingEmote, "").replace("✓", "")).queue();
-            } else {
-                manager.setName(name.replace(waitingEmote, "").replace("✓", "")).queue();
+            if (ticket.getSupporter() == null) {
+                manager.setName(channelName).queue();
+                return;
             }
+            manager.setName("✓-" + channelName).queue();
         }
     }
 

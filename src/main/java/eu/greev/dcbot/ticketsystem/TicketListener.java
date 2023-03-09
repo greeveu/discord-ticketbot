@@ -106,7 +106,7 @@ public class TicketListener extends ListenerAdapter {
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticket.getTextChannel().getName().contains("\uD83D\uDD50")) {
+        if (ticket.getTextChannel().getName().contains(TicketService.WAITING_EMOTE)) {
             ticketService.toggleWaiting(ticket, false);
         }
         String content = event.getMessageId() + "} "

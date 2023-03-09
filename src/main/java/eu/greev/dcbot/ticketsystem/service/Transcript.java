@@ -109,7 +109,6 @@ public class Transcript {
                 List<String> lines = reader.lines().toList();
 
                 for (String line : lines) {
-                    if (lines.get(1).equals(line)) continue;
                     if (lines.get(0).equals(line)) {
                         writer.write("Transcript of ticket: #" + id);
                         writer.newLine();
