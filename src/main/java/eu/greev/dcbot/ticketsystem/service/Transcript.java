@@ -8,7 +8,7 @@ import java.io.*;
 import java.util.List;
 
 @Slf4j
-public class Transcript {
+public class Transcript { //TODO -> rework this class: 1 transcript object per ticket, save in ticket object (dont forget loading it if not cached); hashmap for messages; file itself only as save method, not to change anything directly in it
     private final int id;
     @Getter private final File transcript;
 
