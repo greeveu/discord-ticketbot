@@ -1,6 +1,7 @@
 package eu.greev.dcbot.ticketsystem.entities;
 
 import eu.greev.dcbot.ticketsystem.service.TicketData;
+import eu.greev.dcbot.ticketsystem.service.Transcript;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +25,7 @@ public class Ticket {
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
     @Getter @Setter String tempMsgId;
+    @Getter @Setter Transcript transcript;
     @Getter private String baseMessage;
     @Getter private final int id;
     @Getter private TextChannel textChannel;

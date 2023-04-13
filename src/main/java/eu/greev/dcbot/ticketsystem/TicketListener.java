@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem;
 import eu.greev.dcbot.Main;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.ticketsystem.service.Transcript;
 import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -113,8 +112,7 @@ public class TicketListener extends ListenerAdapter {
                 + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
                 + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
                 + ":>>> " + event.getMessage().getContentDisplay();
-        new Transcript(ticket)
-                .addMessage(content);
+        ticket.getTranscript().addMessage(event.getMessage());
     }
 
     @Override
@@ -123,14 +121,15 @@ public class TicketListener extends ListenerAdapter {
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         if (event.getMessageId().equals(ticket.getBaseMessage())) return;
 
-        new Transcript(ticket).deleteMessage(event.getMessageId());
+        ticket.getTranscript().deleteMessage(event.getMessageIdLong());
     }
 
     @Override
     public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
         if (isValid(event) || event.getAuthor().isBot()) return;
-        new Transcript(ticketService.getTicketByChannelId(event.getChannel().getIdLong()))
-                .editMessage(event.getMessageId(), event.getMessage().getContentDisplay());
+
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        ticket.getTranscript().editMessage(event.getMessageIdLong(), event.getMessage().getContentDisplay());
     }
 
     @Override
