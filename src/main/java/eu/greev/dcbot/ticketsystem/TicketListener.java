@@ -12,6 +12,8 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.events.channel.update.ChannelUpdateArchivedEvent;
 import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -21,6 +23,7 @@ import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.events.thread.ThreadHiddenEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
@@ -36,6 +39,15 @@ import java.util.concurrent.ExecutionException;
 public class TicketListener extends ListenerAdapter {
     private final TicketService ticketService;
     private final Config config;
+
+    @Override
+    public void onChannelUpdateArchived(ChannelUpdateArchivedEvent event) {
+        if (ticketService.getTicketByChannelId(event.getChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null
+                || !Boolean.TRUE.equals(event.getNewValue())) {
+            return;
+        }
+        ((ThreadChannel) event.getChannel()).getManager().setArchived(false).queue();
+    }
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
