@@ -8,10 +8,13 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
-public class Transcript { //TODO -> rework this class: 1 transcript object per ticket, save in ticket object (dont forget loading it if not cached); hashmap for messages; file itself only as save method, not to change anything directly in it
+public class Transcript {
     private final Ticket ticket;
     private final List<Message> messages;
     private final File transcript;
@@ -23,10 +26,7 @@ public class Transcript { //TODO -> rework this class: 1 transcript object per t
         transcript = new File("./Tickets/transcripts/" + ticket.getId() + ".txt");
         try {
             if (transcript.createNewFile()) {
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
-                    writer.write("Transcript of ticket #" + ticket.getId());
-                    writer.newLine();
-                }
+                messages.add(0, new Message(0, "Transcript of ticket #" + ticket.getId(), "", Instant.now().getEpochSecond()));
             }
         } catch (IOException e) {
             log.error("Could not create transcript", e);
@@ -34,11 +34,11 @@ public class Transcript { //TODO -> rework this class: 1 transcript object per t
     }
 
     public void addMessage(net.dv8tion.jda.api.entities.Message message) {
-        messages.add(new Message(message.getIdLong(), message.getContentDisplay(), message.getTimeCreated().toEpochSecond()));
+        messages.add(new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond()));
     }
 
     public void addLogMessage(String log, long timestamp) {
-        messages.add(new Message(0, log, timestamp));
+        messages.add(new Message(0, log, "", timestamp));
     }
 
     public void editMessage(long messageId, String content) {
@@ -59,8 +59,17 @@ public class Transcript { //TODO -> rework this class: 1 transcript object per t
             temp.createNewFile();
 
             for (Message message : messages) {
-                String log = message.getOriginalContent();
+                String log = message.getId() + "}" + formatTimestamp(message.getTimestamp()) + "[" + message.getAuthorMention() + "]:>>> ";
 
+                if (!message.getEditedContent().isEmpty()) {
+                    int size = message.getEditedContent().size();
+                    String[] split = log.split("]:>>> ");
+                }
+
+                if (message.isDeleted() && message.getId() != 0) {
+                    String[] split = log.split("]:>>> ");
+                    log = split[0] + "]:>>> ~~" + split[1] + "~~";
+                }
 
                 writer.write(log);
                 writer.newLine();
@@ -73,8 +82,14 @@ public class Transcript { //TODO -> rework this class: 1 transcript object per t
         return transcript;
     }
 
+    //TODO: add clean transcript file method
+
     public void delete() {
         messages.clear();
         transcript.delete();
+    }
+
+    private String formatTimestamp(long timestamp) {
+        return new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(timestamp * 1000));
     }
 }
