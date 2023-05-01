@@ -120,10 +120,6 @@ public class TicketListener extends ListenerAdapter {
         if (ticket.getTextChannel().getName().contains(TicketService.WAITING_EMOTE)) {
             ticketService.toggleWaiting(ticket, false);
         }
-        String content = event.getMessageId() + "} "
-                + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
-                + ":>>> " + event.getMessage().getContentDisplay();
         ticket.getTranscript().addMessage(event.getMessage());
     }
 

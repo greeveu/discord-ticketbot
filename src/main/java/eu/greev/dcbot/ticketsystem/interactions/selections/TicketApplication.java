@@ -24,7 +24,7 @@ public class TicketApplication extends AbstractSelection {
                 .build();
 
         Modal modal = Modal.create("application", "Give us more information!")
-                .addActionRows(ActionRow.of(member), ActionRow.of(info))
+                .addComponents(ActionRow.of(member), ActionRow.of(info))
                 .build();
         event.replyModal(modal).queue();
     }

@@ -19,7 +19,7 @@ public class TicketBug extends AbstractSelection {
                 .build();
 
         Modal modal = Modal.create("bug", "Give us more information!")
-                .addActionRows(ActionRow.of(bug))
+                .addComponents(ActionRow.of(bug))
                 .build();
 
         event.replyModal(modal).queue();

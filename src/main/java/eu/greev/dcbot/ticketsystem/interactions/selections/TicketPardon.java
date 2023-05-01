@@ -29,7 +29,7 @@ public class TicketPardon extends AbstractSelection {
                 .build();
 
         Modal modal = Modal.create("pardon", "Give us more information!")
-                .addActionRows(ActionRow.of(member), ActionRow.of(info), ActionRow.of(banId))
+                .addComponents(ActionRow.of(member), ActionRow.of(info), ActionRow.of(banId))
                 .build();
         event.replyModal(modal).queue();
     }

@@ -78,7 +78,7 @@ public class Transcript {
 
                 if (message.isDeleted() && message.getId() != 0) {
                     String[] split = log.split("]:>>> ");
-                    log = split[0] + "]:>>> ~~~" + split[1] + "~~~";
+                    log = split[0] + "]:>>> ~~" + split[1] + "~~";
                 }
 
                 writer.write(log);
