@@ -53,22 +53,32 @@ public class Transcript {
                 .findFirst().ifPresent(m -> m.setDeleted(true));
     }
 
-    public File toFile() {
+    public File toFile(boolean clean) {
         File temp = new File("./Tickets/transcripts/" + ticket.getId() + ".temp");
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true))) {
             temp.createNewFile();
 
             for (Message message : messages) {
-                String log = message.getId() + "}" + formatTimestamp(message.getTimestamp()) + "[" + message.getAuthorMention() + "]:>>> ";
+                String log =  formatTimestamp(message.getTimestamp()) + "[" + message.getAuthorMention() + "]:>>> ";
+                log = clean ? log : message.getId() + "}" + log ;
 
-                if (!message.getEditedContent().isEmpty()) {
-                    int size = message.getEditedContent().size();
-                    String[] split = log.split("]:>>> ");
+                List<String> edits = message.getEditedContent();
+                if (!edits.isEmpty()) {
+                    StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" ~#Edits:");
+
+                    for (int i = 0; i <= edits.size() - 1; i++) {
+                        builder.append(" ").append(edits.get(i));
+
+                        if ((edits.size() - 1) == i) {
+                            builder.append(" ->");
+                        }
+                    }
+                    log = builder.toString();
                 }
 
                 if (message.isDeleted() && message.getId() != 0) {
                     String[] split = log.split("]:>>> ");
-                    log = split[0] + "]:>>> ~~" + split[1] + "~~";
+                    log = split[0] + "]:>>> ~~~" + split[1] + "~~~";
                 }
 
                 writer.write(log);
@@ -81,8 +91,6 @@ public class Transcript {
         }
         return transcript;
     }
-
-    //TODO: add clean transcript file method
 
     public void delete() {
         messages.clear();

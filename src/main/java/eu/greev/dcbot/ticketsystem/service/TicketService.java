@@ -139,7 +139,7 @@ public class TicketService {
                     .setFooter(config.getServerName(), config.getServerLogo());
             try {
                 ticket.getOwner().openPrivateChannel()
-                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile())))
+                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(true))))
                         .complete();
             } catch (ErrorResponseException e) {
                 log.warn("Couldn't send [" + ticket.getOwner().getName() + "#" + ticket.getOwner().getDiscriminator() + "] their transcript since an error occurred:\nMeaning:"

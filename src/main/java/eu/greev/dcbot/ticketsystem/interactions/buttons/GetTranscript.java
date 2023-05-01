@@ -30,7 +30,7 @@ public class GetTranscript extends AbstractButton {
         Ticket ticket = ticketService.getTicketByTicketId(ticketID);
 
         event.getUser().openPrivateChannel()
-                .flatMap(channel -> channel.sendFiles(FileUpload.fromData(ticket.getTranscript().toFile())))
+                .flatMap(channel -> channel.sendFiles(FileUpload.fromData(ticket.getTranscript().toFile(true))))
                 .queue();
 
         EmbedBuilder builder = new EmbedBuilder()
