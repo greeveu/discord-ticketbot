@@ -26,7 +26,7 @@ public class Transcript {
         transcript = new File("./Tickets/transcripts/" + ticket.getId() + ".txt");
         try {
             if (transcript.createNewFile()) {
-                messages.add(0, new Message(0, "Transcript of ticket #" + ticket.getId(), "", Instant.now().getEpochSecond()));
+                addLogMessage("Transcript of ticket #" + ticket.getId(), Instant.now().getEpochSecond());
             }
         } catch (IOException e) {
             log.error("Could not create transcript", e);
@@ -59,8 +59,14 @@ public class Transcript {
             temp.createNewFile();
 
             for (Message message : messages) {
-                String log =  formatTimestamp(message.getTimestamp()) + "[" + message.getAuthorMention() + "]:>>> ";
-                log = clean ? log : message.getId() + "}" + log ;
+
+                if (message.getId() == 0) {
+                    writer.write(message.getOriginalContent());
+                    writer.newLine();
+                }
+
+                String log = clean ? formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] "
+                        : message.getId() + "}" + message.getTimestamp() + "[" + message.getAuthor() + "]:>>> " ;
 
                 List<String> edits = message.getEditedContent();
                 if (!edits.isEmpty()) {

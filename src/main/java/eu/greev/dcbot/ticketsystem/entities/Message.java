@@ -9,7 +9,7 @@ import java.util.List;
 public class Message {
     private final long id;
     private final String originalContent;
-    private final String authorMention;
+    private final String author;
     private final long timestamp;
     private List<String> editedContent = new ArrayList<>();
     private boolean isDeleted;

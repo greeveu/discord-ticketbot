@@ -1,28 +1,35 @@
 package eu.greev.dcbot.ticketsystem.service;
 
+import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import lombok.AllArgsConstructor;
+import lombok.extern.log4j.Log4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.User;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Log4j
 @AllArgsConstructor
 public class TicketData {
     private final JDA jda;
     private final Jdbi jdbi;
 
     protected Ticket loadTicket(int ticketID) {
-        Ticket.TicketBuilder ticket = Ticket.builder().ticketData(this).id(ticketID);
+        Ticket.TicketBuilder builder = Ticket.builder().ticketData(this).id(ticketID);
 
         jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
                 .bind(0, ticketID)
                 .map((resultSet, index, ctx) -> {
                     jda.retrieveUserById(resultSet.getString("owner")).complete();
-                    ticket.textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
+                    builder.textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
                             .threadChannel(!resultSet.getString("threadID").equals(Strings.EMPTY)
                                     ? jda.getThreadChannelById(resultSet.getString("threadID")) : null)
                             .owner(jda.getUserById(resultSet.getString("owner")))
@@ -31,16 +38,20 @@ public class TicketData {
                             .baseMessage(resultSet.getString("baseMessage"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
-                    if (!resultSet.getString("closer").equals(Strings.EMPTY))
-                        ticket.closer(jda.retrieveUserById(resultSet.getString("closer")).complete());
+                    if (!resultSet.getString("closer").equals(Strings.EMPTY)) {
+                        builder.closer(jda.retrieveUserById(resultSet.getString("closer")).complete());
+                    }
 
-                    if (!resultSet.getString("supporter").equals(Strings.EMPTY))
-                        ticket.supporter(jda.retrieveUserById(resultSet.getString("supporter")).complete());
+                    if (!resultSet.getString("supporter").equals(Strings.EMPTY)) {
+                        builder.supporter(jda.retrieveUserById(resultSet.getString("supporter")).complete());
+                    }
 
                     return null;
                 })
                 .findFirst());
-        return ticket.build();
+        Ticket ticket = builder.build();
+        ticket.setTranscript(new Transcript(ticket, loadMessages(ticketID)));
+        return ticket;
     }
 
     protected Ticket loadTicket(long ticketChannelID) {
@@ -80,8 +91,40 @@ public class TicketData {
                 .bind(6, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
                 .bind(7, ticket.getBaseMessage())
-
                 .bind(8, ticket.getId())
                 .execute());
+    }
+
+    private List<Message> loadMessages(int ticketId) {
+        List<Message> messages = new ArrayList<>();
+        File transcript = new File("./Tickets/transcripts/" + ticketId + ".txt");
+
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
+            lines = reader.lines().toList();
+        } catch (IOException e) {
+            log.error("Failed loading messages from transcript #" + ticketId, e);
+        }
+
+        for (String line : lines) {
+            Message message = null;
+            String[] split = line.split("}");
+            Long messageId = Long.getLong(split[0]);
+            long timestamp = Long.getLong(split[1].split("\\[")[0]);
+
+            if (messageId == null) {
+                throw new IllegalStateException("The ticket of this transcript does not exist anymore");
+            }
+
+            if (messageId == 0) {
+                String[] afterId = split[1].split("\\[");
+                message = new Message(messageId, line.split("]:>>> ")[0], afterId[0].split("]")[0], timestamp);
+            }
+
+
+            messages.add(message);
+        }
+
+        return messages;
     }
 }
