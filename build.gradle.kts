@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion", "JDA", "5.0.0-beta.8") {
+    implementation("net.dv8tion", "JDA", "5.0.0-beta.10") {
         exclude("club.minnced", "opus-java")
     }
     implementation("org.jdbi", "jdbi3-oracle12", "3.32.0")
