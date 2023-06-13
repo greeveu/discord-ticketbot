@@ -137,13 +137,16 @@ public class TicketService {
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
                     .setColor(Color.decode(config.getColor()))
                     .setFooter(config.getServerName(), config.getServerLogo());
-            try {
-                ticket.getOwner().openPrivateChannel()
-                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(true))))
-                        .complete();
-            } catch (ErrorResponseException e) {
-                log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
-                        + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
+
+            if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
+                try {
+                    ticket.getOwner().openPrivateChannel()
+                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(true))))
+                            .complete();
+                } catch (ErrorResponseException e) {
+                    log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
+                            + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
+                }
             }
             ticket.getTextChannel().delete().queue();
         }
