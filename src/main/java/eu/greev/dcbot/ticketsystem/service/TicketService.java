@@ -130,7 +130,7 @@ public class TicketService {
                     .bind(1, ticket.getId())
                     .execute());
 
-            transcript.addLogMessage("[" + closer.getEffectiveName() + "#" + closer.getUser().getDiscriminator() + "] closed the ticket.",
+            transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.",
                     Instant.now().getEpochSecond());
 
             EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticket.getId())
@@ -142,7 +142,7 @@ public class TicketService {
                         .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(true))))
                         .complete();
             } catch (ErrorResponseException e) {
-                log.warn("Couldn't send [" + ticket.getOwner().getName() + "#" + ticket.getOwner().getDiscriminator() + "] their transcript since an error occurred:\nMeaning:"
+                log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
                         + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
             }
             ticket.getTextChannel().delete().queue();
@@ -168,7 +168,7 @@ public class TicketService {
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
-        ticket.getTranscript().addLogMessage("[" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.",
+        ticket.getTranscript().addLogMessage("[" + supporter.getName() + "] claimed the ticket.",
                 Instant.now().getEpochSecond());
         ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
                 .setActionRow(Button.danger("close", "Close"))
@@ -198,7 +198,7 @@ public class TicketService {
             return false;
         }
 
-        ticket.getTranscript().addLogMessage("[" + user.getName() + "#" + user.getDiscriminator() + "] got added to the ticket.",
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got added to the ticket.",
                 Instant.now().getEpochSecond());
 
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
@@ -212,7 +212,7 @@ public class TicketService {
         if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
-        ticket.getTranscript().addLogMessage("[" + user.getName() + "#" + user.getDiscriminator() + "] got removed from the ticket.",
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got removed from the ticket.",
                 Instant.now().getEpochSecond());
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
@@ -227,7 +227,7 @@ public class TicketService {
             return false;
         }
 
-        ticket.getTranscript().addLogMessage("[" + owner.getEffectiveName() + "#" + owner.getUser().getDiscriminator() + "] is the new ticket owner.",
+        ticket.getTranscript().addLogMessage("[" + owner.getUser().getName() + "] is the new ticket owner.",
                 Instant.now().getEpochSecond());
         ticket.setOwner(owner.getUser());
         updateChannelTopic(ticket);
