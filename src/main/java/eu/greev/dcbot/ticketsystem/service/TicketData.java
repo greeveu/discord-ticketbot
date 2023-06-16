@@ -1,6 +1,5 @@
 package eu.greev.dcbot.ticketsystem.service;
 
-import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import lombok.AllArgsConstructor;
 import lombok.extern.log4j.Log4j;
@@ -9,10 +8,6 @@ import net.dv8tion.jda.api.entities.User;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,9 +44,7 @@ public class TicketData {
                     return null;
                 })
                 .findFirst());
-        Ticket ticket = builder.build();
-        ticket.setTranscript(new Transcript(ticket, loadMessages(ticketID)));
-        return ticket;
+        return builder.build();
     }
 
     protected Ticket loadTicket(long ticketChannelID) {
@@ -93,38 +86,5 @@ public class TicketData {
                 .bind(7, ticket.getBaseMessage())
                 .bind(8, ticket.getId())
                 .execute());
-    }
-
-    private List<Message> loadMessages(int ticketId) {
-        List<Message> messages = new ArrayList<>();
-        File transcript = new File("./Tickets/transcripts/" + ticketId + ".txt");
-
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
-            lines = reader.lines().toList();
-        } catch (IOException e) {
-            log.error("Failed loading messages from transcript #" + ticketId, e);
-        }
-
-        for (String line : lines) {
-            Message message = null;
-            String[] split = line.split("}");
-            Long messageId = Long.getLong(split[0]);
-            long timestamp = Long.getLong(split[1].split("\\[")[0]);
-
-            if (messageId == null) {
-                throw new IllegalStateException("The ticket of this transcript does not exist anymore");
-            }
-
-            if (messageId == 0) {
-                String[] afterId = split[1].split("\\[");
-                message = new Message(messageId, line.split("]:>>> ")[0], afterId[0].split("]")[0], timestamp);
-            }
-
-
-            messages.add(message);
-        }
-
-        return messages;
     }
 }

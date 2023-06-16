@@ -53,7 +53,7 @@ public class Transcript {
                 .findFirst().ifPresent(m -> m.setDeleted(true));
     }
 
-    public File toFile(boolean clean) {
+    public File toFile() {
         File temp = new File("./Tickets/transcripts/" + ticket.getId() + ".temp");
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true))) {
             temp.createNewFile();
@@ -65,12 +65,11 @@ public class Transcript {
                     writer.newLine();
                 }
 
-                String log = clean ? formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] "
-                        : message.getId() + "}" + message.getTimestamp() + "[" + message.getAuthor() + "]:>>> " ;
+                String log = formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] ";
 
                 List<String> edits = message.getEditedContent();
                 if (!edits.isEmpty()) {
-                    StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" ~#Edits:");
+                    StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" | Edits:");
 
                     for (int i = 0; i <= edits.size() - 1; i++) {
                         builder.append(" ").append(edits.get(i));
@@ -83,8 +82,8 @@ public class Transcript {
                 }
 
                 if (message.isDeleted() && message.getId() != 0) {
-                    String[] split = log.split("]:>>> ");
-                    log = split[0] + "]:>>> ~~" + split[1] + "~~";
+                    String[] split = log.split("]: ");
+                    log = split[0] + "]: ~~" + split[1] + "~~";
                 }
 
                 writer.write(log);

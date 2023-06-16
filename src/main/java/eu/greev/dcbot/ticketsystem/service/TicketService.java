@@ -110,7 +110,9 @@ public class TicketService {
                 return;
             }
             Member member = guild.retrieveMemberById(id).complete();
-            if (member != null) thread.addThreadMember(member).queue();
+            if (member != null) {
+                thread.addThreadMember(member).queue();
+            }
         });
         return true;
     }
@@ -141,7 +143,7 @@ public class TicketService {
             if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
                 try {
                     ticket.getOwner().openPrivateChannel()
-                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(true))))
+                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile())))
                             .complete();
                 } catch (ErrorResponseException e) {
                     log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
@@ -166,8 +168,9 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(config.getServerName(), config.getServerLogo());
-        if (!ticket.getInfo().equals(Strings.EMPTY))
+        if (!ticket.getInfo().equals(Strings.EMPTY)) {
             builder.addField("Information", ticket.getInfo(), false);
+        }
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
@@ -184,7 +187,7 @@ public class TicketService {
         String channelName = generateChannelName(ticket.getTopic(), ticket.getId());
         if (waiting) {
             manager.setName(WAITING_EMOTE + "-" + channelName).queue();
-        }else {
+        } else {
             if (ticket.getSupporter() == null) {
                 manager.setName(channelName).queue();
                 return;
@@ -252,7 +255,9 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(idLong);
-            if (loadedTicket.getOwner() == null) return null;
+            if (loadedTicket.getOwner() == null) {
+                return null;
+            }
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
@@ -265,7 +270,9 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(ticketID);
-            if (loadedTicket.getOwner() == null) return null;
+            if (loadedTicket.getOwner() == null) {
+                return null;
+            }
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
@@ -278,7 +285,7 @@ public class TicketService {
     public void updateChannelTopic(Ticket ticket) {
         if (ticket.getSupporter() == null) {
             ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
-        }else {
+        } else {
             ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
     }
