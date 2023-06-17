@@ -20,3 +20,19 @@ CREATE TABLE IF NOT EXISTS tickets
 
 	closer      VARCHAR     DEFAULT ""
 );
+CREATE TABLE IF NOT EXISTS messages
+(
+    messageID   VARCHAR     PRIMARY KEY                 NOT NULL,
+
+    content     VARCHAR     DEFAULT ""                  NOT NULL,
+
+    author      VARCHAR     DEFAULT ""                  NOT NULL,
+
+    timeCreated BIGINT      DEFAULT 0                   NOT NULL,
+
+    isDeleted   BOOL        DEFAULT 0                   NOT NULL,
+
+    isEdited    BOOL        DEFAULT 0                   NOT NULL,
+
+    ticketID    VARCHAR,    FOREIGN KEY (ticketID) REFERENCES tickets(ticketID)
+);
