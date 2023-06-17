@@ -11,6 +11,6 @@ public class Message {
     private final String originalContent;
     private final String author;
     private final long timestamp;
-    private List<String> editedContent = new ArrayList<>();
+    private List<Edit> edits = new ArrayList<>();
     private boolean isDeleted;
 }
