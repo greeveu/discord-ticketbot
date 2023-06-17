@@ -1,7 +1,9 @@
 package eu.greev.dcbot.ticketsystem.service;
 
+import eu.greev.dcbot.ticketsystem.entities.Edit;
 import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedWriter;
@@ -14,24 +16,9 @@ import java.util.Date;
 import java.util.List;
 
 @Slf4j
+@RequiredArgsConstructor
 public class Transcript {
-    private final Ticket ticket;
     private final List<Message> messages;
-    private final File transcript;
-
-    public Transcript(Ticket ticket, List<Message> messages) {
-        this.ticket = ticket;
-        this.messages = messages;
-        new File("./Tickets/transcripts").mkdirs();
-        transcript = new File("./Tickets/transcripts/" + ticket.getId() + ".txt");
-        try {
-            if (transcript.createNewFile()) {
-                addLogMessage("Transcript of ticket #" + ticket.getId(), Instant.now().getEpochSecond());
-            }
-        } catch (IOException e) {
-            log.error("Could not create transcript", e);
-        }
-    }
 
     public void addMessage(net.dv8tion.jda.api.entities.Message message) {
         messages.add(new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond()));
@@ -41,10 +28,10 @@ public class Transcript {
         messages.add(new Message(0, log, "", timestamp));
     }
 
-    public void editMessage(long messageId, String content) {
+    public void editMessage(long messageId, String content, long timeEdited) {
         messages.stream()
                 .filter(m -> m.getId() == messageId)
-                .findFirst().ifPresent(m -> m.getEditedContent().add(content));
+                .findFirst().ifPresent(m -> m.getEdits().add(new Edit(content, timeEdited)));
     }
 
     public void deleteMessage(long messageId) {
@@ -53,8 +40,18 @@ public class Transcript {
                 .findFirst().ifPresent(m -> m.setDeleted(true));
     }
 
-    public File toFile() {
-        File temp = new File("./Tickets/transcripts/" + ticket.getId() + ".temp");
+    public File toFile(int id) { //TODO: Rework this method
+        new File("./Tickets/transcripts").mkdirs();
+        File transcript = new File("./Tickets/transcripts/" + id + ".txt");
+        try {
+            if (transcript.createNewFile()) {
+                addLogMessage("Transcript of ticket #" + id, Instant.now().getEpochSecond());
+            }
+        } catch (IOException e) {
+            log.error("Could not create transcript", e);
+        }
+
+        File temp = new File("./Tickets/transcripts/" + id + ".temp");
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true))) {
             temp.createNewFile();
 
@@ -67,7 +64,7 @@ public class Transcript {
 
                 String log = formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] ";
 
-                List<String> edits = message.getEditedContent();
+                List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
                     StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" | Edits:");
 
@@ -92,14 +89,14 @@ public class Transcript {
 
             temp.renameTo(transcript);
         } catch (IOException e) {
-            log.error("Could not clean transcript of ticket #" + ticket.getId(), e);
+            log.error("Could not clean transcript of ticket #" + id, e);
         }
         return transcript;
     }
 
     public void delete() {
         messages.clear();
-        transcript.delete();
+        //TODO: just look at usage place of this method :P
     }
 
     private String formatTimestamp(long timestamp) {

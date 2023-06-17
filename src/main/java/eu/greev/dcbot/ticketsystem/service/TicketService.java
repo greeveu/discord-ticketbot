@@ -119,23 +119,24 @@ public class TicketService {
 
     public void closeTicket(Ticket ticket, boolean wasAccident, Member closer) {
         Transcript transcript = ticket.getTranscript();
+        int ticketId = ticket.getId();
         ticket.setCloser(closer.getUser());
         if (wasAccident) {
             ticket.getTextChannel().delete().queue();
-            jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
+            jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
             allCurrentTickets.remove(ticket);
 
             transcript.delete();
         } else {
             jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
                     .bind(0, closer.getId())
-                    .bind(1, ticket.getId())
+                    .bind(1, ticketId)
                     .execute());
 
             transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.",
                     Instant.now().getEpochSecond());
 
-            EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticket.getId())
+            EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
                     .setColor(Color.decode(config.getColor()))
                     .setFooter(config.getServerName(), config.getServerLogo());
@@ -143,7 +144,7 @@ public class TicketService {
             if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
                 try {
                     ticket.getOwner().openPrivateChannel()
-                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile())))
+                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(ticketId))))
                             .complete();
                 } catch (ErrorResponseException e) {
                     log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"

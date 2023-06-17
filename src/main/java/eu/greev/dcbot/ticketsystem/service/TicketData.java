@@ -58,7 +58,7 @@ public class TicketData {
     }
 
     public void loadTranscript(Ticket ticket) {
-        ticket.setTranscript(new Transcript(ticket, loadMessages(ticket.getId())));
+        ticket.setTranscript(new Transcript(loadMessages(ticket.getId())));
     }
 
     private List<Message> loadMessages(int ticketId) {
