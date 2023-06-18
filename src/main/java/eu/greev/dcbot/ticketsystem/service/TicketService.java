@@ -126,7 +126,7 @@ public class TicketService {
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
             allCurrentTickets.remove(ticket);
 
-            transcript.delete();
+            ticketData.deleteTranscript(ticket);
         } else {
             jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
                     .bind(0, closer.getId())

@@ -83,7 +83,6 @@ public class TicketData {
                     return null;
                 })
                 .findFirst());
-
         return messages;
     }
 
@@ -92,6 +91,23 @@ public class TicketData {
                 .bind(0, messageId)
                 .mapTo(Edit.class)
                 .list());
+    }
+
+    public void deleteTranscript(Ticket ticket) {
+        List<Message> messages = ticket.getTranscript().getMessages();
+        List<Message> messagesWithEdits = messages.stream().filter(m -> !m.getEdits().isEmpty()).toList();
+
+        if (!messagesWithEdits.isEmpty()) {
+            for (Message message : messagesWithEdits) {
+                jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM edits WHERE messageID=?")
+                        .bind(0, message.getId())
+                        .execute());
+            }
+        }
+
+        jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM messages WHERE ticketID=?")
+                .bind(0, ticket.getId())
+                .execute());
     }
 
     protected List<Integer> getTicketIdsByUser(User user) {

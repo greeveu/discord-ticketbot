@@ -2,7 +2,7 @@ package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Edit;
 import eu.greev.dcbot.ticketsystem.entities.Message;
-import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 
 @Slf4j
+@Getter
 @RequiredArgsConstructor
 public class Transcript {
     private final List<Message> messages;
@@ -92,11 +93,6 @@ public class Transcript {
             log.error("Could not clean transcript of ticket #" + id, e);
         }
         return transcript;
-    }
-
-    public void delete() {
-        messages.clear();
-        //TODO: just look at usage place of this method :P
     }
 
     private String formatTimestamp(long timestamp) {
