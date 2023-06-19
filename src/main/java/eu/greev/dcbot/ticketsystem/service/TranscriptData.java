@@ -19,6 +19,29 @@ public class TranscriptData {
         ticket.setTranscript(new Transcript(loadMessages(ticket.getId())));
     }
 
+    public void addNewMessage(Message message) {
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO messages(messageID, content, author, timeCreated) VALUES(?, ?, ?, ?)")
+                .bind(0, message.getId())
+                .bind(1, message.getOriginalContent())
+                .bind(2, message.getAuthor())
+                .bind(3, message.getTimestamp())
+                .execute());
+    }
+
+    public void addEditToMessage(Edit edit, long messageId) {
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO edits(messageID, content, timeEdited) VALUES(?, ?, ?)")
+                .bind(0, messageId)
+                .bind(1, edit.getEdit())
+                .bind(2, edit.getTimeEdited())
+                .execute());
+    }
+
+    public void deleteMessage(long messageId) {
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE messages SET isDeleted=true WHERE messageID=?")
+                .bind(0, messageId)
+                .execute());
+    }
+
     private List<Message> loadMessages(int ticketId) {
         List<Message> messages = new ArrayList<>();
 
