@@ -41,30 +41,26 @@ public class Transcript {
                 .findFirst().ifPresent(m -> m.setDeleted(true));
     }
 
-    public File toFile(int id) { //TODO: Rework this method
+    public File toFile(int id) {
         new File("./Tickets/transcripts").mkdirs();
         File transcript = new File("./Tickets/transcripts/" + id + ".txt");
         try {
-            if (transcript.createNewFile()) {
-                addLogMessage("Transcript of ticket #" + id, Instant.now().getEpochSecond());
+            if (!transcript.createNewFile()) {
+                throw new IllegalStateException("Transcript should already exist");
             }
+            addLogMessage("Transcript of ticket #" + id, Instant.now().getEpochSecond());
         } catch (IOException e) {
             log.error("Could not create transcript", e);
         }
 
-        File temp = new File("./Tickets/transcripts/" + id + ".temp");
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true))) {
-            temp.createNewFile();
-
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
             for (Message message : messages) {
-
                 if (message.getId() == 0) {
                     writer.write(message.getOriginalContent());
                     writer.newLine();
                 }
 
                 String log = formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] ";
-
                 List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
                     StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" | Edits:");
@@ -83,12 +79,9 @@ public class Transcript {
                     String[] split = log.split("]: ");
                     log = split[0] + "]: ~~" + split[1] + "~~";
                 }
-
                 writer.write(log);
                 writer.newLine();
             }
-
-            temp.renameTo(transcript);
         } catch (IOException e) {
             log.error("Could not clean transcript of ticket #" + id, e);
         }

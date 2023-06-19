@@ -126,7 +126,7 @@ public class TicketService {
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
             allCurrentTickets.remove(ticket);
 
-            ticketData.deleteTranscript(ticket);
+            ticketData.getTranscriptData().deleteTranscript(ticket);
         } else {
             jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
                     .bind(0, closer.getId())
@@ -227,10 +227,8 @@ public class TicketService {
     }
 
     public boolean setOwner(Ticket ticket, Member owner) {
-        if (ticket.getTextChannel().getPermissionOverride(owner) == null) {
-            return false;
-        }
-        if (!ticket.getTextChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
+        if (ticket.getTextChannel().getPermissionOverride(owner) == null
+                || !ticket.getTextChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
 

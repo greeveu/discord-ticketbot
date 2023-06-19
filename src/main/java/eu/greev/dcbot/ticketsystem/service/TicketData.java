@@ -1,9 +1,7 @@
 package eu.greev.dcbot.ticketsystem.service;
 
-import eu.greev.dcbot.ticketsystem.entities.Edit;
-import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
-import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.log4j.Log4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.User;
@@ -14,10 +12,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Log4j
-@AllArgsConstructor
 public class TicketData {
     private final JDA jda;
     private final Jdbi jdbi;
+    @Getter private final TranscriptData transcriptData;
+
+    public TicketData(JDA jda, Jdbi jdbi) {
+        this.jda = jda;
+        this.jdbi = jdbi;
+        this.transcriptData = new TranscriptData(jdbi);
+    }
 
     protected Ticket loadTicket(int ticketID) {
         Ticket.TicketBuilder builder = Ticket.builder().ticketData(this).id(ticketID);
@@ -48,66 +52,13 @@ public class TicketData {
                 .findFirst());
 
         Ticket ticket = builder.build();
-        loadTranscript(ticket);
+        transcriptData.loadTranscript(ticket);
 
         return builder.build();
     }
 
     protected Ticket loadTicket(long ticketChannelID) {
         return this.loadTicket(getTicketIdByChannelId(ticketChannelID));
-    }
-
-    public void loadTranscript(Ticket ticket) {
-        ticket.setTranscript(new Transcript(loadMessages(ticket.getId())));
-    }
-
-    private List<Message> loadMessages(int ticketId) {
-        List<Message> messages = new ArrayList<>();
-
-        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM messages WHERE ticketID = ?")
-                .bind(0, ticketId)
-                .map((r, columnNumber, ctx) -> {
-                    Message message = new Message(
-                            r.getLong("messageID"),
-                            r.getString("content"),
-                            r.getString("author"),
-                            r.getLong("timeCreated"));
-                    boolean isDeleted = r.getBoolean("isDeleted");
-                    boolean isEdited = r.getBoolean("isEdited");
-
-                    message.setDeleted(isDeleted);
-
-                    if (isEdited) {
-                        message.setEdits(loadEdits(message.getId()));
-                    }
-                    return null;
-                })
-                .findFirst());
-        return messages;
-    }
-
-    private List<Edit> loadEdits(long messageId) {
-        return jdbi.withHandle(handle -> handle.createQuery("SELECT content, timeEdited FROM edits WHERE messageID = ?")
-                .bind(0, messageId)
-                .mapTo(Edit.class)
-                .list());
-    }
-
-    public void deleteTranscript(Ticket ticket) {
-        List<Message> messages = ticket.getTranscript().getMessages();
-        List<Message> messagesWithEdits = messages.stream().filter(m -> !m.getEdits().isEmpty()).toList();
-
-        if (!messagesWithEdits.isEmpty()) {
-            for (Message message : messagesWithEdits) {
-                jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM edits WHERE messageID=?")
-                        .bind(0, message.getId())
-                        .execute());
-            }
-        }
-
-        jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM messages WHERE ticketID=?")
-                .bind(0, ticket.getId())
-                .execute());
     }
 
     protected List<Integer> getTicketIdsByUser(User user) {
