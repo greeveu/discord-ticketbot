@@ -79,6 +79,7 @@ public class TicketService {
         Ticket ticket = Ticket.builder()
                 .id(ticketData.getLastTicketId() + 1)
                 .ticketData(ticketData)
+                .transcript(new Transcript(new ArrayList<>()))
                 .owner(owner)
                 .topic(topic)
                 .info(info)
