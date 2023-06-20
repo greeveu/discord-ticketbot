@@ -1,8 +1,10 @@
 package eu.greev.dcbot.ticketsystem.service;
 
+import eu.greev.dcbot.ticketsystem.entities.Edit;
+import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import eu.greev.dcbot.ticketsystem.entities.TranscriptEntity;
 import eu.greev.dcbot.utils.Config;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -19,14 +21,11 @@ import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@AllArgsConstructor
 public class TicketService {
     private final JDA jda;
     private final Config config;
@@ -34,6 +33,40 @@ public class TicketService {
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
     public static final String WAITING_EMOTE = "\uD83D\uDD50";
+
+    public TicketService(JDA jda, Config config, Jdbi jdbi, TicketData ticketData) {
+        this.jda = jda;
+        this.config = config;
+        this.jdbi = jdbi;
+        this.ticketData = ticketData;
+
+        new Timer().schedule(new TimerTask() {
+            final TranscriptData transcriptData = ticketData.getTranscriptData();
+            @Override
+            public void run() {
+                getOpenCachedTickets().stream()
+                        .map(Ticket::getTranscript)
+                        .map(Transcript::getRecentChanges)
+                        .filter(changes -> !changes.isEmpty())
+                        .forEach(changes -> {
+                            for (TranscriptEntity entity : changes) {
+                                if (entity instanceof Edit edit) {
+                                    transcriptData.addEditToMessage(edit);
+                                    continue;
+                                }
+                                Message message = (Message) entity;
+
+                                if (message.isDeleted()) {
+                                    transcriptData.deleteMessage(message.getId());
+                                } else {
+                                    transcriptData.addNewMessage(message);
+                                }
+                            }
+                            changes.clear();
+                        });
+            }
+        }, 0, TimeUnit.MINUTES.toMillis(3));
+    }
 
     public boolean createNewTicket(String info, String topic, User owner) {
         Guild guild = jda.getGuildById(config.getServerId());
@@ -275,6 +308,10 @@ public class TicketService {
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
+    }
+
+    public List<Ticket> getOpenCachedTickets() {
+        return allCurrentTickets.stream().filter(ticket -> ticket.getCloser() == null).toList();
     }
 
     public List<Integer> getTicketIdsByOwner(User owner) {

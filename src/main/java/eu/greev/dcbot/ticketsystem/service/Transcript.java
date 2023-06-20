@@ -2,6 +2,7 @@ package eu.greev.dcbot.ticketsystem.service;
 
 import eu.greev.dcbot.ticketsystem.entities.Edit;
 import eu.greev.dcbot.ticketsystem.entities.Message;
+import eu.greev.dcbot.ticketsystem.entities.TranscriptEntity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -19,26 +21,37 @@ import java.util.List;
 @Getter
 @RequiredArgsConstructor
 public class Transcript {
+    private final List<TranscriptEntity> recentChanges = new ArrayList<>();
     private final List<Message> messages;
 
     public void addMessage(net.dv8tion.jda.api.entities.Message message) {
-        messages.add(new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond()));
+        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond());
+        messages.add(msg);
+        recentChanges.add(msg);
     }
 
     public void addLogMessage(String log, long timestamp) {
-        messages.add(new Message(0, log, "", timestamp));
+        Message message = new Message(0, log, "", timestamp);
+        messages.add(message);
+        recentChanges.add(message);
     }
 
     public void editMessage(long messageId, String content, long timeEdited) {
+        Edit edit = new Edit(content, timeEdited, messageId);
+
         messages.stream()
                 .filter(m -> m.getId() == messageId)
-                .findFirst().ifPresent(m -> m.getEdits().add(new Edit(content, timeEdited)));
+                .findFirst().ifPresent(m -> m.getEdits().add(edit));
+        recentChanges.add(edit);
     }
 
     public void deleteMessage(long messageId) {
         messages.stream()
                 .filter(m -> m.getId() == messageId)
                 .findFirst().ifPresent(m -> m.setDeleted(true));
+        recentChanges.stream()
+                .filter(m -> (((Message) m).getId()) == messageId)
+                .findFirst().ifPresent(m -> ((Message) m).setDeleted(true));
     }
 
     public File toFile(int id) {

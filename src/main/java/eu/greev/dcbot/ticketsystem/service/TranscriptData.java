@@ -28,9 +28,9 @@ public class TranscriptData {
                 .execute());
     }
 
-    public void addEditToMessage(Edit edit, long messageId) {
+    public void addEditToMessage(Edit edit) {
         jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO edits(messageID, content, timeEdited) VALUES(?, ?, ?)")
-                .bind(0, messageId)
+                .bind(0, edit.getMessageId())
                 .bind(1, edit.getEdit())
                 .bind(2, edit.getTimeEdited())
                 .execute());

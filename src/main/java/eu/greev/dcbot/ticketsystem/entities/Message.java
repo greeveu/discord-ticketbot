@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-public class Message {
+public class Message implements TranscriptEntity {
     private final long id;
     private final String originalContent;
     private final String author;
