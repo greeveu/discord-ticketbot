@@ -24,14 +24,14 @@ public class Transcript {
     private final List<TranscriptEntity> recentChanges = new ArrayList<>();
     private final List<Message> messages;
 
-    public void addMessage(net.dv8tion.jda.api.entities.Message message) {
-        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond());
+    public void addMessage(net.dv8tion.jda.api.entities.Message message, int ticketId) {
+        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond(), ticketId);
         messages.add(msg);
         recentChanges.add(msg);
     }
 
-    public void addLogMessage(String log, long timestamp) {
-        Message message = new Message(0, log, "", timestamp);
+    public void addLogMessage(String log, long timestamp, int ticketId) {
+        Message message = new Message(0, log, "", timestamp, ticketId);
         messages.add(message);
         recentChanges.add(message);
     }
@@ -54,17 +54,17 @@ public class Transcript {
                 .findFirst().ifPresent(m -> ((Message) m).setDeleted(true));
     }
 
-    public File toFile(int id) {
+    public File toFile(int ticketId) {
         new File("./Tickets/transcripts").mkdirs();
-        File transcript = new File("./Tickets/transcripts/" + id + ".txt");
+        File transcript = new File("./Tickets/transcripts/" + ticketId + ".txt");
         try {
             if (!transcript.createNewFile()) {
                 throw new IllegalStateException("Transcript should already exist");
             }
-            addLogMessage("Transcript of ticket #" + id, Instant.now().getEpochSecond());
         } catch (IOException e) {
             log.error("Could not create transcript", e);
         }
+        addLogMessage("Transcript of ticket #" + ticketId, Instant.now().getEpochSecond(), ticketId);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
             for (Message message : messages) {
@@ -96,7 +96,7 @@ public class Transcript {
                 writer.newLine();
             }
         } catch (IOException e) {
-            log.error("Could not clean transcript of ticket #" + id, e);
+            log.error("Could not clean transcript of ticket #" + ticketId, e);
         }
         return transcript;
     }

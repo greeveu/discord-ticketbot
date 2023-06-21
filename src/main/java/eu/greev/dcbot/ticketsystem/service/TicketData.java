@@ -51,10 +51,7 @@ public class TicketData {
                 })
                 .findFirst());
 
-        Ticket ticket = builder.build();
-        transcriptData.loadTranscript(ticket);
-
-        return builder.build();
+        return builder.transcript(transcriptData.loadTranscript(ticketID)).build();
     }
 
     protected Ticket loadTicket(long ticketChannelID) {

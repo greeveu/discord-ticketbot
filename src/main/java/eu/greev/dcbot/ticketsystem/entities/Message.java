@@ -11,6 +11,7 @@ public class Message implements TranscriptEntity {
     private final String originalContent;
     private final String author;
     private final long timestamp;
+    private final int ticketId;
     private List<Edit> edits = new ArrayList<>();
     private boolean isDeleted;
 }

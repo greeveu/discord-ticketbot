@@ -65,7 +65,7 @@ public class Transfer extends AbstractCommand {
                     .addField("✅ **New supporter**", sup.getAsMention() + " is the new supporter", false);
 
             ticket.getTranscript().addLogMessage("Ticket got transferred to [" + sup.getUser().getName() + "].",
-                    Instant.now().getEpochSecond());
+                    Instant.now().getEpochSecond(), ticket.getId());
             event.replyEmbeds(builder.build()).queue();
             return;
         }

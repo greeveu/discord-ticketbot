@@ -117,7 +117,7 @@ public class TicketListener extends ListenerAdapter {
         if (ticket.getTextChannel().getName().contains(TicketService.WAITING_EMOTE)) {
             ticketService.toggleWaiting(ticket, false);
         }
-        ticket.getTranscript().addMessage(event.getMessage());
+        ticket.getTranscript().addMessage(event.getMessage(), ticket.getId());
     }
 
     @Override

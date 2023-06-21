@@ -15,16 +15,17 @@ public class TranscriptData {
         this.jdbi = jdbi;
     }
 
-    public void loadTranscript(Ticket ticket) {
-        ticket.setTranscript(new Transcript(loadMessages(ticket.getId())));
+    public Transcript loadTranscript(int ticketId) {
+        return new Transcript(loadMessages(ticketId));
     }
 
     public void addNewMessage(Message message) {
-        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO messages(messageID, content, author, timeCreated) VALUES(?, ?, ?, ?)")
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO messages(messageID, content, author, timeCreated, ticketID) VALUES(?, ?, ?, ?, ?)")
                 .bind(0, message.getId())
                 .bind(1, message.getOriginalContent())
                 .bind(2, message.getAuthor())
                 .bind(3, message.getTimestamp())
+                .bind(4, message.getTicketId())
                 .execute());
     }
 
@@ -33,6 +34,10 @@ public class TranscriptData {
                 .bind(0, edit.getMessageId())
                 .bind(1, edit.getEdit())
                 .bind(2, edit.getTimeEdited())
+                .execute());
+
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE messages SET isEdited = true WHERE messageID = ?")
+                .bind(0, edit.getMessageId())
                 .execute());
     }
 
@@ -52,7 +57,8 @@ public class TranscriptData {
                             r.getLong("messageID"),
                             r.getString("content"),
                             r.getString("author"),
-                            r.getLong("timeCreated"));
+                            r.getLong("timeCreated"),
+                            ticketId);
                     boolean isDeleted = r.getBoolean("isDeleted");
                     boolean isEdited = r.getBoolean("isEdited");
 

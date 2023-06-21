@@ -168,7 +168,7 @@ public class TicketService {
                     .execute());
 
             transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.",
-                    Instant.now().getEpochSecond());
+                    Instant.now().getEpochSecond(), ticketId);
 
             EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
@@ -210,7 +210,7 @@ public class TicketService {
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
         ticket.getTranscript().addLogMessage("[" + supporter.getName() + "] claimed the ticket.",
-                Instant.now().getEpochSecond());
+                Instant.now().getEpochSecond(), ticket.getId());
         ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
                 .setActionRow(Button.danger("close", "Close"))
                 .queue();
@@ -240,7 +240,7 @@ public class TicketService {
         }
 
         ticket.getTranscript().addLogMessage("[" + user.getName() + "] got added to the ticket.",
-                Instant.now().getEpochSecond());
+                Instant.now().getEpochSecond(), ticket.getId());
 
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
         ticket.addInvolved(user.getId());
@@ -254,7 +254,7 @@ public class TicketService {
             return false;
         }
         ticket.getTranscript().addLogMessage("[" + user.getName() + "] got removed from the ticket.",
-                Instant.now().getEpochSecond());
+                Instant.now().getEpochSecond(), ticket.getId());
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
         return true;
@@ -267,14 +267,14 @@ public class TicketService {
         }
 
         ticket.getTranscript().addLogMessage("[" + owner.getUser().getName() + "] is the new ticket owner.",
-                Instant.now().getEpochSecond());
+                Instant.now().getEpochSecond(), ticket.getId());
         ticket.setOwner(owner.getUser());
         updateChannelTopic(ticket);
         return true;
     }
 
     public void setTopic(Ticket ticket, String topic) {
-        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", Instant.now().getEpochSecond());
+        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", Instant.now().getEpochSecond(), ticket.getId());
 
         ticket.setTopic(topic);
         updateChannelTopic(ticket);
