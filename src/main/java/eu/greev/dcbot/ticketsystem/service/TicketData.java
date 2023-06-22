@@ -36,6 +36,7 @@ public class TicketData {
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
+                            .isWating(resultSet.getBoolean("isWaiting"))
                             .baseMessage(resultSet.getString("baseMessage"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
@@ -81,17 +82,18 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, isWaiting=? owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
                 .bind(0, ticket.getTextChannel() != null ? ticket.getTextChannel().getId() : "")
                 .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
                 .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
                 .bind(3, ticket.getInfo())
-                .bind(4, ticket.getOwner().getId())
-                .bind(5, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
-                .bind(6, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
+                .bind(4, ticket.isWating())
+                .bind(5, ticket.getOwner().getId())
+                .bind(6, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
+                .bind(7, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
-                .bind(7, ticket.getBaseMessage())
-                .bind(8, ticket.getId())
+                .bind(8, ticket.getBaseMessage())
+                .bind(9, ticket.getId())
                 .execute());
     }
 }

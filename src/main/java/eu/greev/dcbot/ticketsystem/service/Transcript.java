@@ -25,7 +25,7 @@ public class Transcript {
     private final List<Message> messages;
 
     public void addMessage(net.dv8tion.jda.api.entities.Message message, int ticketId) {
-        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getAsMention(), message.getTimeCreated().toEpochSecond(), ticketId);
+        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getName(), message.getTimeCreated().toEpochSecond(), ticketId);
         messages.add(msg);
         recentChanges.add(msg);
     }
@@ -50,8 +50,13 @@ public class Transcript {
                 .filter(m -> m.getId() == messageId)
                 .findFirst().ifPresent(m -> m.setDeleted(true));
         recentChanges.stream()
+                .filter(Message.class::isInstance)
                 .filter(m -> (((Message) m).getId()) == messageId)
-                .findFirst().ifPresent(m -> ((Message) m).setDeleted(true));
+                .findFirst().ifPresentOrElse(m -> ((Message) m).setDeleted(true), () -> {
+                    Message message = new Message(messageId, "", "", 0, 0);
+                    message.setDeleted(true);
+                    recentChanges.add(message);
+                });
     }
 
     public File toFile(int ticketId) {
@@ -59,17 +64,17 @@ public class Transcript {
         File transcript = new File("./Tickets/transcripts/" + ticketId + ".txt");
         try {
             if (!transcript.createNewFile()) {
-                throw new IllegalStateException("Transcript should already exist");
+                return transcript;
             }
         } catch (IOException e) {
             log.error("Could not create transcript", e);
         }
-        addLogMessage("Transcript of ticket #" + ticketId, Instant.now().getEpochSecond(), ticketId);
+        messages.add(0, new Message(0, "Transcript of ticket #" + ticketId, "", Instant.now().getEpochSecond(), ticketId));
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
             for (Message message : messages) {
                 if (message.getId() == 0) {
-                    writer.write(message.getOriginalContent());
+                    writer.write(formatTimestamp(message.getTimestamp()) + ": " + message.getOriginalContent());
                     writer.newLine();
                 }
 
@@ -89,8 +94,7 @@ public class Transcript {
                 }
 
                 if (message.isDeleted() && message.getId() != 0) {
-                    String[] split = log.split("]: ");
-                    log = split[0] + "]: ~~" + split[1] + "~~";
+                    log = "~~" + message.getOriginalContent() + "~~";
                 }
                 writer.write(log);
                 writer.newLine();

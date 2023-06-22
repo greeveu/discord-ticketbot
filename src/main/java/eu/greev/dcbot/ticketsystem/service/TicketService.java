@@ -220,6 +220,7 @@ public class TicketService {
     public void toggleWaiting(Ticket ticket, boolean waiting) {
         TextChannelManager manager = ticket.getTextChannel().getManager();
         String channelName = generateChannelName(ticket.getTopic(), ticket.getId());
+        ticket.setWaiting(true);
         if (waiting) {
             manager.setName(WAITING_EMOTE + "-" + channelName).queue();
         } else {

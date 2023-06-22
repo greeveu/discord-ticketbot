@@ -74,14 +74,18 @@ public class TranscriptData {
     }
 
     private List<Edit> loadEdits(long messageId) {
-        return jdbi.withHandle(handle -> handle.createQuery("SELECT content, timeEdited FROM edits WHERE messageID = ?")
+        List<Edit> edits = jdbi.withHandle(handle -> handle.createQuery("SELECT content, timeEdited FROM edits WHERE messageID = ?")
                 .bind(0, messageId)
-                .mapTo(Edit.class)
+                .map((r, columnNumber, ctx) -> new Edit(r.getString("content"), r.getLong("timeEdited"), messageId))
                 .list());
+        edits.sort((edit1, edit2) -> (int) (edit1.getTimeEdited() - edit2.getTimeEdited()));
+        return edits;
     }
 
     public void deleteTranscript(Ticket ticket) {
-        List<Message> messages = ticket.getTranscript().getMessages();
+        Transcript transcript = ticket.getTranscript();
+        transcript.getRecentChanges().clear();
+        List<Message> messages = transcript.getMessages();
         List<Message> messagesWithEdits = messages.stream().filter(m -> !m.getEdits().isEmpty()).toList();
 
         if (!messagesWithEdits.isEmpty()) {

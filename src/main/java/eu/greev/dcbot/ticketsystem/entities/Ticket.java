@@ -24,6 +24,7 @@ public class Ticket {
     @Getter @Builder.Default private String topic = "No topic given";
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
+    @Getter boolean isWaiting;
     @Getter @Setter String tempMsgId;
     @Getter @Setter Transcript transcript;
     @Getter private String baseMessage;
@@ -59,6 +60,12 @@ public class Ticket {
 
     public Ticket setInfo(String info) {
         this.info = info;
+        this.save();
+        return this;
+    }
+
+    public Ticket setWaiting(boolean isWaiting) {
+        this.isWaiting = isWaiting;
         this.save();
         return this;
     }
