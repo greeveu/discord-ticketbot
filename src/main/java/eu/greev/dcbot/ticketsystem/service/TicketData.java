@@ -36,7 +36,7 @@ public class TicketData {
                             .owner(jda.getUserById(resultSet.getString("owner")))
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
-                            .isWating(resultSet.getBoolean("isWaiting"))
+                            .isWaiting(resultSet.getBoolean("isWaiting"))
                             .baseMessage(resultSet.getString("baseMessage"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
@@ -87,7 +87,7 @@ public class TicketData {
                 .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
                 .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
                 .bind(3, ticket.getInfo())
-                .bind(4, ticket.isWating())
+                .bind(4, ticket.isWaiting())
                 .bind(5, ticket.getOwner().getId())
                 .bind(6, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
                 .bind(7, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
