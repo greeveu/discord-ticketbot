@@ -20,7 +20,7 @@ public class TranscriptData {
     }
 
     public void addNewMessage(Message message) {
-        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO messages(messageID, content, author, timeCreated, ticketID) VALUES(?, ?, ?, ?, ?)")
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO messages(messageID, content, author, timeCreated, ticketID) VALUES(?, ?, ?, ?, ?) ON CONFLICT(messageId) DO UPDATE SET isEdited=true")
                 .bind(0, message.getId())
                 .bind(1, message.getOriginalContent())
                 .bind(2, message.getAuthor())

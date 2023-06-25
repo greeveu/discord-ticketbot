@@ -6,6 +6,7 @@ import eu.greev.dcbot.ticketsystem.entities.TranscriptEntity;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,8 +31,8 @@ public class Transcript {
         recentChanges.add(msg);
     }
 
-    public void addLogMessage(String log, long timestamp, int ticketId) {
-        Message message = new Message(0, log, "", timestamp, ticketId);
+    public void addLogMessage(String log, String author, long timestamp, int ticketId) {
+        Message message = new Message(0, log, author, timestamp, ticketId);
         messages.add(message);
         recentChanges.add(message);
     }
@@ -73,15 +74,23 @@ public class Transcript {
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
             for (Message message : messages) {
+                StringBuilder builder = new StringBuilder(formatTimestamp(message.getTimestamp()));
+
                 if (message.getId() == 0) {
-                    writer.write(formatTimestamp(message.getTimestamp()) + ": " + message.getOriginalContent());
+                    if (message.getAuthor().equals(Strings.EMPTY)) {
+                        builder.append(": ");
+                    } else {
+                        builder.append("[").append(message.getAuthor()).append("] ");
+                    }
+                    writer.write(builder.append(message.getOriginalContent()).toString());
                     writer.newLine();
+                    continue;
                 }
 
-                String log = formatTimestamp(message.getTimestamp()) + "[" + message.getAuthor() + "] ";
+                builder.append("[").append(message.getAuthor()).append("] ");
                 List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
-                    StringBuilder builder = new StringBuilder(log).append(message.getOriginalContent()).append(" | Edits:");
+                    builder.append(message.getOriginalContent()).append(" | Edits:");
 
                     for (int i = 0; i <= edits.size() - 1; i++) {
                         builder.append(" ").append(edits.get(i));
@@ -90,13 +99,12 @@ public class Transcript {
                             builder.append(" ->");
                         }
                     }
-                    log = builder.toString();
                 }
 
                 if (message.isDeleted() && message.getId() != 0) {
-                    log = "~~" + message.getOriginalContent() + "~~";
+                    builder.insert(0, "~~").append("~~");
                 }
-                writer.write(log);
+                writer.write(builder.toString());
                 writer.newLine();
             }
         } catch (IOException e) {

@@ -82,7 +82,7 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, isWaiting=? owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, isWaiting=?, owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
                 .bind(0, ticket.getTextChannel() != null ? ticket.getTextChannel().getId() : "")
                 .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
                 .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
