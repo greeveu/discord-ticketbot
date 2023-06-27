@@ -56,6 +56,11 @@ public class TicketService {
                                 }
                                 Message message = (Message) entity;
 
+                                if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
+                                    transcriptData.addLogMessage(message);
+                                    continue;
+                                }
+
                                 if (message.isDeleted()) {
                                     transcriptData.deleteMessage(message.getId());
                                 } else {
@@ -167,7 +172,7 @@ public class TicketService {
                     .bind(1, ticketId)
                     .execute());
 
-            transcript.addLogMessage("closed the ticket.", closer.getUser().getName(), Instant.now().getEpochSecond(), ticketId);
+            transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.", Instant.now().getEpochSecond(), ticketId);
 
             EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
                     .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
@@ -208,7 +213,7 @@ public class TicketService {
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
-        ticket.getTranscript().addLogMessage(" claimed the ticket.", supporter.getName(), Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTranscript().addLogMessage("[" + supporter.getName() + "] claimed the ticket.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
                 .setActionRow(Button.danger("close", "Close"))
                 .queue();
@@ -238,8 +243,7 @@ public class TicketService {
             return false;
         }
 
-        ticket.getTranscript().addLogMessage(" got added to the ticket.", user.getName(),
-                Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got added to the ticket.", Instant.now().getEpochSecond(), ticket.getId());
 
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
         ticket.addInvolved(user.getId());
@@ -252,7 +256,7 @@ public class TicketService {
         if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
-        ticket.getTranscript().addLogMessage(" got removed from the ticket.", user.getName(), Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got removed from the ticket.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
         return true;
@@ -264,15 +268,14 @@ public class TicketService {
             return false;
         }
 
-        ticket.getTranscript().addLogMessage(" is the new ticket owner.", owner.getUser().getName(),
-                Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTranscript().addLogMessage("[" + owner.getUser().getName() + "] is the new ticket owner.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.setOwner(owner.getUser());
         updateChannelTopic(ticket);
         return true;
     }
 
     public void setTopic(Ticket ticket, String topic) {
-        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", "", Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", Instant.now().getEpochSecond(), ticket.getId());
 
         ticket.setTopic(topic);
         updateChannelTopic(ticket);

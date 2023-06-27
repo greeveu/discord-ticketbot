@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS messages
 
     isEdited    BOOL        DEFAULT 0                   NOT NULL,
 
-    ticketID    VARCHAR,    FOREIGN KEY (ticketID) REFERENCES tickets(ticketID)
+    ticketID    INTEGER,    FOREIGN KEY (ticketID) REFERENCES tickets(ticketID)
 );
 CREATE TABLE IF NOT EXISTS edits
 (
@@ -47,4 +47,12 @@ CREATE TABLE IF NOT EXISTS edits
     timeEdited  BIGINT      DEFAULT 0                   NOT NULL,
 
     FOREIGN KEY (messageID) REFERENCES messages(messageID)
+);
+CREATE TABLE IF NOT EXISTS logs
+(
+    log         VARCHAR     DEFAULT ""                  NOT NULL,
+
+    timeCreated VARCHAR     DEFAULT 0                   NOT NULL,
+
+    ticketID    INTEGER,    FOREIGN KEY (ticketID) REFERENCES tickets(ticketID)
 );

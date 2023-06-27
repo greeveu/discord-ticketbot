@@ -47,6 +47,14 @@ public class TranscriptData {
                 .execute());
     }
 
+    public void addLogMessage(Message log) {
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO logs(log, timeCreated, ticketID) VALUES(?, ?, ?)")
+                .bind(0, log.getOriginalContent())
+                .bind(1, log.getTimestamp())
+                .bind(2, log.getTicketId())
+                .execute());
+    }
+
     private List<Message> loadMessages(int ticketId) {
         List<Message> messages = new ArrayList<>();
 
@@ -70,6 +78,15 @@ public class TranscriptData {
                     return null;
                 })
                 .findFirst());
+
+        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM logs WHERE ticketID=?")
+                .bind(0, ticketId)
+                .map((r, columnNumber, ctx) -> {
+                    messages.add(new Message(0, r.getString("log"), "", r.getLong("timeCreated"), ticketId));
+                    return null;
+                })
+                .findFirst());
+
         return messages;
     }
 
@@ -97,6 +114,10 @@ public class TranscriptData {
         }
 
         jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM messages WHERE ticketID=?")
+                .bind(0, ticket.getId())
+                .execute());
+
+        jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM logs WHERE ticketID=?")
                 .bind(0, ticket.getId())
                 .execute());
     }

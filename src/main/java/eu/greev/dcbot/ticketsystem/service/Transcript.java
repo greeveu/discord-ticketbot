@@ -31,8 +31,8 @@ public class Transcript {
         recentChanges.add(msg);
     }
 
-    public void addLogMessage(String log, String author, long timestamp, int ticketId) {
-        Message message = new Message(0, log, author, timestamp, ticketId);
+    public void addLogMessage(String log, long timestamp, int ticketId) {
+        Message message = new Message(0, log, "", timestamp, ticketId);
         messages.add(message);
         recentChanges.add(message);
     }
@@ -76,13 +76,8 @@ public class Transcript {
             for (Message message : messages) {
                 StringBuilder builder = new StringBuilder(formatTimestamp(message.getTimestamp()));
 
-                if (message.getId() == 0) {
-                    if (message.getAuthor().equals(Strings.EMPTY)) {
-                        builder.append(": ");
-                    } else {
-                        builder.append("[").append(message.getAuthor()).append("] ");
-                    }
-                    writer.write(builder.append(message.getOriginalContent()).toString());
+                if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
+                    writer.write(builder.append(": ").append(message.getOriginalContent()).toString());
                     writer.newLine();
                     continue;
                 }
