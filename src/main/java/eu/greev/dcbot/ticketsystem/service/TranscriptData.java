@@ -5,7 +5,6 @@ import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import org.jdbi.v3.core.Jdbi;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class TranscriptData {
@@ -56,9 +55,7 @@ public class TranscriptData {
     }
 
     private List<Message> loadMessages(int ticketId) {
-        List<Message> messages = new ArrayList<>();
-
-        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM messages WHERE ticketID = ?")
+        List<Message> messages = jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM messages WHERE ticketID = ?")
                 .bind(0, ticketId)
                 .map((r, columnNumber, ctx) -> {
                     Message message = new Message(
@@ -75,28 +72,23 @@ public class TranscriptData {
                     if (isEdited) {
                         message.setEdits(loadEdits(message.getId()));
                     }
-                    return null;
+                    return message;
                 })
-                .findFirst());
+                .list());
 
-        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM logs WHERE ticketID=?")
+        messages.addAll(jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM logs WHERE ticketID=?")
                 .bind(0, ticketId)
-                .map((r, columnNumber, ctx) -> {
-                    messages.add(new Message(0, r.getString("log"), "", r.getLong("timeCreated"), ticketId));
-                    return null;
-                })
-                .findFirst());
+                .map((r, columnNumber, ctx) -> new Message(0, r.getString("log"), "", r.getLong("timeCreated"), ticketId))
+                .list()));
 
         return messages;
     }
 
     private List<Edit> loadEdits(long messageId) {
-        List<Edit> edits = jdbi.withHandle(handle -> handle.createQuery("SELECT content, timeEdited FROM edits WHERE messageID = ?")
+        return jdbi.withHandle(handle -> handle.createQuery("SELECT content, timeEdited FROM edits WHERE messageID = ? ORDER BY timeEdited ASC")
                 .bind(0, messageId)
                 .map((r, columnNumber, ctx) -> new Edit(r.getString("content"), r.getLong("timeEdited"), messageId))
                 .list());
-        edits.sort((edit1, edit2) -> (int) (edit1.getTimeEdited() - edit2.getTimeEdited()));
-        return edits;
     }
 
     public void deleteTranscript(Ticket ticket) {

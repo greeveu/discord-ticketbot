@@ -68,7 +68,7 @@ public class Transcript {
                 return transcript;
             }
         } catch (IOException e) {
-            log.error("Could not create transcript", e);
+            log.error("Could not create transcript file", e);
         }
         messages.add(0, new Message(0, "Transcript of ticket #" + ticketId, "", Instant.now().getEpochSecond(), ticketId));
 
@@ -77,20 +77,20 @@ public class Transcript {
                 StringBuilder builder = new StringBuilder(formatTimestamp(message.getTimestamp()));
 
                 if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
-                    writer.write(builder.append(": ").append(message.getOriginalContent()).toString());
+                    writer.write(builder.append(message.getOriginalContent()).toString());
                     writer.newLine();
                     continue;
                 }
 
-                builder.append("[").append(message.getAuthor()).append("] ");
+                builder.append("[").append(message.getAuthor()).append("] ").append(message.getOriginalContent());
                 List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
-                    builder.append(message.getOriginalContent()).append(" | Edits:");
+                    builder.append(" | Edits:");
 
-                    for (int i = 0; i <= edits.size() - 1; i++) {
-                        builder.append(" ").append(edits.get(i));
+                    for (int i = 0; i < edits.size(); i++) {
+                        builder.append(" ").append(edits.get(i).getEdit());
 
-                        if ((edits.size() - 1) == i) {
+                        if (edits.size() - 1 != i) {
                             builder.append(" ->");
                         }
                     }
