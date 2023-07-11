@@ -40,10 +40,10 @@ public class TicketListener extends ListenerAdapter {
     @Override
     public void onChannelUpdateArchived(ChannelUpdateArchivedEvent event) {
         if (ticketService.getTicketByChannelId(event.getChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null
-                || !Boolean.TRUE.equals(event.getNewValue())) {
+                || Boolean.FALSE.equals(event.getNewValue()) || !(event.getChannel() instanceof ThreadChannel channel)) {
             return;
         }
-        ((ThreadChannel) event.getChannel()).getManager().setArchived(false).queue();
+        channel.getManager().setArchived(false).queue();
     }
 
     @Override
