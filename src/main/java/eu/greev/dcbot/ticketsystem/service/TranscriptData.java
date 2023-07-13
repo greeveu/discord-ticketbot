@@ -30,13 +30,13 @@ public class TranscriptData {
 
     public void addEditToMessage(Edit edit) {
         jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO edits(messageID, content, timeEdited) VALUES(?, ?, ?)")
-                .bind(0, edit.getMessageId())
-                .bind(1, edit.getEdit())
-                .bind(2, edit.getTimeEdited())
+                .bind(0, edit.messageId())
+                .bind(1, edit.edit())
+                .bind(2, edit.timeEdited())
                 .execute());
 
         jdbi.withHandle(handle -> handle.createUpdate("UPDATE messages SET isEdited = true WHERE messageID = ?")
-                .bind(0, edit.getMessageId())
+                .bind(0, edit.messageId())
                 .execute());
     }
 

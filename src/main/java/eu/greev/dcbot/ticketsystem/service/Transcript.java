@@ -88,7 +88,7 @@ public class Transcript {
                     builder.append(" | Edits:");
 
                     for (int i = 0; i < edits.size(); i++) {
-                        builder.append(" ").append(edits.get(i).getEdit());
+                        builder.append(" ").append(edits.get(i).edit());
 
                         if (edits.size() - 1 != i) {
                             builder.append(" ->");

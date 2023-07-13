@@ -166,31 +166,32 @@ public class TicketService {
             allCurrentTickets.remove(ticket);
 
             ticketData.getTranscriptData().deleteTranscript(ticket);
-        } else {
-            jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
-                    .bind(0, closer.getId())
-                    .bind(1, ticketId)
-                    .execute());
-
-            transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.", Instant.now().getEpochSecond(), ticketId);
-
-            EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
-                    .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
-                    .setColor(Color.decode(config.getColor()))
-                    .setFooter(config.getServerName(), config.getServerLogo());
-
-            if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
-                try {
-                    ticket.getOwner().openPrivateChannel()
-                            .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(ticketId))))
-                            .complete();
-                } catch (ErrorResponseException e) {
-                    log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
-                            + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
-                }
-            }
-            ticket.getTextChannel().delete().queue();
+            return;
         }
+
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
+                .bind(0, closer.getId())
+                .bind(1, ticketId)
+                .execute());
+
+        transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.", Instant.now().getEpochSecond(), ticketId);
+
+        EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
+                .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
+                .setColor(Color.decode(config.getColor()))
+                .setFooter(config.getServerName(), config.getServerLogo());
+
+        if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
+            try {
+                ticket.getOwner().openPrivateChannel()
+                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(ticketId))))
+                        .complete();
+            } catch (ErrorResponseException e) {
+                log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
+                        + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
+            }
+        }
+        ticket.getTextChannel().delete().queue();
     }
 
     public boolean claim(Ticket ticket, User supporter) {

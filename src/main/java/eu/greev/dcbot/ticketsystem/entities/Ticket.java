@@ -106,9 +106,4 @@ public class Ticket {
     public void save() {
         EXECUTOR.execute(() -> ticketData.saveTicket(this));
     }
-
-    @Override
-    public String toString() {
-        return "Id:{" + id + "},Channel:{" + textChannel + "},Owner:{" + owner + "},Topic:{" + topic + "},Info:{" + info + "},Supporter:{" + supporter + "},Involved:{" + involved + "}";
-    }
 }
