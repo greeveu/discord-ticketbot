@@ -82,10 +82,10 @@ public class Transcript {
                     continue;
                 }
 
-                builder.append("[").append(message.getAuthor()).append("] ").append(message.getOriginalContent());
+                builder.append("[").append(message.getAuthor()).append("] ");
                 List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
-                    builder.append(" | Edits:");
+                    builder.append(message.getOriginalContent()).append(" | Edits:");
 
                     for (int i = 0; i < edits.size(); i++) {
                         builder.append(" ").append(edits.get(i).edit());
@@ -97,7 +97,7 @@ public class Transcript {
                 }
 
                 if (message.isDeleted() && message.getId() != 0) {
-                    builder.insert(0, "~~").append("~~");
+                    builder.append("~~").append(message.getOriginalContent()).append("~~");
                 }
                 writer.write(builder.toString());
                 writer.newLine();

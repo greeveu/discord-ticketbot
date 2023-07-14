@@ -18,7 +18,7 @@ public class TicketApplication extends AbstractSelection {
                 .build();
 
         TextInput info = TextInput.create("info", "Information", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("Give us more information. Note: You don't have to write your application in here.")
+                .setPlaceholder("Give us more information.\nNote: You don't have to write your application in here.")
                 .setMaxLength(500)
                 .setRequired(true)
                 .build();

@@ -17,7 +17,7 @@ public class TicketPardon extends AbstractSelection {
                 .setRequired(true)
                 .build();
         TextInput info = TextInput.create("info", "Description", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("Give us more information about your problem. Note: You don't have to write your appeal in here!")
+                .setPlaceholder("Give us more information about your problem.\nNote: You don't have to write your appeal in here!")
                 .setMaxLength(500)
                 .setRequired(true)
                 .build();
