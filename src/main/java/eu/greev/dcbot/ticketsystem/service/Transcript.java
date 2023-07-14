@@ -109,6 +109,6 @@ public class Transcript {
     }
 
     private String formatTimestamp(long timestamp) {
-        return new SimpleDateFormat("[hh:mm:ss a '|' yyyy.MM.dd] ").format(Date.from(Instant.ofEpochSecond(timestamp)));
+        return new SimpleDateFormat("[hh:mm:ss a '|' yyyy-MM-dd] ").format(Date.from(Instant.ofEpochSecond(timestamp)));
     }
 }

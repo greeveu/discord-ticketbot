@@ -13,7 +13,7 @@ public class TicketBug extends AbstractSelection {
     public void execute(Event evt) {
         StringSelectInteractionEvent event = (StringSelectInteractionEvent) evt;
         TextInput bug = TextInput.create("bug", "Bug", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("Give us more information about the bug")
+                .setPlaceholder("Give us more information about the bug. Note: You don't have to write the bug report in here.")
                 .setMaxLength(500)
                 .setRequired(true)
                 .build();
