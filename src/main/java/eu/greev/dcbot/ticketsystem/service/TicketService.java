@@ -41,34 +41,13 @@ public class TicketService {
         this.ticketData = ticketData;
 
         new Timer().schedule(new TimerTask() {
-            final TranscriptData transcriptData = ticketData.getTranscriptData();
             @Override
             public void run() {
                 getOpenCachedTickets().stream()
                         .map(Ticket::getTranscript)
                         .map(Transcript::getRecentChanges)
                         .filter(changes -> !changes.isEmpty())
-                        .forEach(changes -> {
-                            for (TranscriptEntity entity : changes) {
-                                if (entity instanceof Edit edit) {
-                                    transcriptData.addEditToMessage(edit);
-                                    continue;
-                                }
-                                Message message = (Message) entity;
-
-                                if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
-                                    transcriptData.addLogMessage(message);
-                                    continue;
-                                }
-
-                                if (message.isDeleted()) {
-                                    transcriptData.deleteMessage(message.getId());
-                                } else {
-                                    transcriptData.addNewMessage(message);
-                                }
-                            }
-                            changes.clear();
-                        });
+                        .forEach(TicketService.this::saveTranscriptChanges);
             }
         }, 0, TimeUnit.MINUTES.toMillis(3));
     }
@@ -191,6 +170,7 @@ public class TicketService {
                         + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
             }
         }
+        saveTranscriptChanges(ticket.getTranscript().getRecentChanges());
         ticket.getTextChannel().delete().queue();
     }
 
@@ -327,6 +307,29 @@ public class TicketService {
         } else {
             ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
+    }
+
+    private void saveTranscriptChanges(List<TranscriptEntity> changes) {
+        TranscriptData transcriptData = ticketData.getTranscriptData();
+        for (TranscriptEntity entity : changes) {
+            if (entity instanceof Edit edit) {
+                transcriptData.addEditToMessage(edit);
+                continue;
+            }
+            Message message = (Message) entity;
+
+            if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
+                transcriptData.addLogMessage(message);
+                continue;
+            }
+
+            if (message.isDeleted()) {
+                transcriptData.deleteMessage(message.getId());
+            } else {
+                transcriptData.addNewMessage(message);
+            }
+        }
+        changes.clear();
     }
 
     private String generateChannelName(String topic, int ticketId) {
