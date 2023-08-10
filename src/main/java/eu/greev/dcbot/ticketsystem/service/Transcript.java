@@ -82,10 +82,10 @@ public class Transcript {
                     continue;
                 }
 
-                builder.append("[").append(message.getAuthor()).append("] ");
+                builder.append("[").append(message.getAuthor()).append("] ").append(message.getOriginalContent());
                 List<Edit> edits = message.getEdits();
                 if (!edits.isEmpty()) {
-                    builder.append(message.getOriginalContent()).append(" | Edits:");
+                    builder.append(" | Edits:");
 
                     for (int i = 0; i < edits.size(); i++) {
                         builder.append(" ").append(edits.get(i).edit());
@@ -109,6 +109,6 @@ public class Transcript {
     }
 
     private static String formatTimestamp(long timestamp) {
-        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ").format(Date.from(Instant.ofEpochSecond(timestamp)));
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ ").format(Date.from(Instant.ofEpochSecond(timestamp)));
     }
 }
