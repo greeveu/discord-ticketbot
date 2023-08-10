@@ -1,6 +1,7 @@
 package eu.greev.dcbot.ticketsystem.entities;
 
 import eu.greev.dcbot.ticketsystem.service.TicketData;
+import eu.greev.dcbot.ticketsystem.service.Transcript;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,7 +24,10 @@ public class Ticket {
     @Getter @Builder.Default private String topic = "No topic given";
     @Getter @Builder.Default private String info = Strings.EMPTY;
     @Getter @Builder.Default private ArrayList<String> involved = new ArrayList<>();
-    @Getter @Setter private String tempMsgId;
+    @Getter boolean isWaiting;
+    @Getter @Setter String tempMsgId;
+    @Getter @Setter Transcript transcript;
+    @Getter private String baseMessage;
     @Getter private final int id;
     @Getter private TextChannel textChannel;
     @Getter private ThreadChannel threadChannel;
@@ -60,8 +64,20 @@ public class Ticket {
         return this;
     }
 
+    public Ticket setWaiting(boolean isWaiting) {
+        this.isWaiting = isWaiting;
+        this.save();
+        return this;
+    }
+
     public Ticket setTextChannel(TextChannel textChannel) {
         this.textChannel = textChannel;
+        this.save();
+        return this;
+    }
+
+    public Ticket setBaseMessage(String baseMessage) {
+        this.baseMessage = baseMessage;
         this.save();
         return this;
     }
@@ -89,10 +105,5 @@ public class Ticket {
 
     public void save() {
         EXECUTOR.execute(() -> ticketData.saveTicket(this));
-    }
-
-    @Override
-    public String toString() {
-        return "Id:{" + id + "},Channel:{" + textChannel + "},Owner:{" + owner + "},Topic:{" + topic + "},Info:{" + info + "},Supporter:{" + supporter + "},Involved:{" + involved + "}";
     }
 }

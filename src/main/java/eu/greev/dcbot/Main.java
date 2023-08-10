@@ -26,7 +26,6 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
-import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -68,8 +67,9 @@ public class Main {
         Constructor constructor = new Constructor(Config.class);
         Yaml yaml = new Yaml(constructor);
         Config config = yaml.load(new FileInputStream(file));
-        if (config == null)
+        if (config == null) {
             config = new Config();
+        }
 
         if (Strings.isEmpty(config.getToken())) {
             log.error("No valid token provided! Add your bot token into `./Tickets/config.yml` with the key `token`");

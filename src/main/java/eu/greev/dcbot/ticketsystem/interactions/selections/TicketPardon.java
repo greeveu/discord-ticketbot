@@ -17,7 +17,7 @@ public class TicketPardon extends AbstractSelection {
                 .setRequired(true)
                 .build();
         TextInput info = TextInput.create("info", "Description", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("Give us more information about your problem")
+                .setPlaceholder("Give us more information about your problem.\nNote: You don't have to write your appeal in here!")
                 .setMaxLength(500)
                 .setRequired(true)
                 .build();
@@ -29,7 +29,7 @@ public class TicketPardon extends AbstractSelection {
                 .build();
 
         Modal modal = Modal.create("pardon", "Give us more information!")
-                .addActionRows(ActionRow.of(member), ActionRow.of(info), ActionRow.of(banId))
+                .addComponents(ActionRow.of(member), ActionRow.of(info), ActionRow.of(banId))
                 .build();
         event.replyModal(modal).queue();
     }

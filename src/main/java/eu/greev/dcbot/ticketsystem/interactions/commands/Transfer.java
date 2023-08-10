@@ -2,7 +2,6 @@ package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.ticketsystem.service.Transcript;
 import eu.greev.dcbot.utils.Config;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -12,8 +11,7 @@ import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
 
 public class Transfer extends AbstractCommand {
     private final EmbedBuilder wrongChannel;
@@ -65,9 +63,8 @@ public class Transfer extends AbstractCommand {
                     .setColor(Color.decode(config.getColor()))
                     .setAuthor(event.getUser().getName(), null, event.getUser().getEffectiveAvatarUrl())
                     .addField("✅ **New supporter**", sup.getAsMention() + " is the new supporter", false);
-            String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                    + "> Ticket got transferred to [" + sup.getUser().getName() + "#" + sup.getUser().getDiscriminator() + "].";
-            new Transcript(ticket).addMessage(content);
+
+            ticket.getTranscript().addLogMessage("Ticket got transferred to [" + sup.getUser().getName() + "].", Instant.now().getEpochSecond(), ticket.getId());
             event.replyEmbeds(builder.build()).queue();
             return;
         }

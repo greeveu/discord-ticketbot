@@ -18,7 +18,7 @@ public class TicketCustom extends AbstractSelection {
                 .build();
 
         Modal modal = Modal.create("custom", "Your custom ticket topic!")
-                .addActionRows(ActionRow.of(custom))
+                .addComponents(ActionRow.of(custom))
                 .build();
         event.replyModal(modal).queue();
     }

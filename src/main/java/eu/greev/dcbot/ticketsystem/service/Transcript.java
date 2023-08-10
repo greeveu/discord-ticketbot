@@ -1,135 +1,114 @@
 package eu.greev.dcbot.ticketsystem.service;
 
-import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import eu.greev.dcbot.ticketsystem.entities.Edit;
+import eu.greev.dcbot.ticketsystem.entities.Message;
+import eu.greev.dcbot.ticketsystem.entities.TranscriptEntity;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Slf4j
+@Getter
+@RequiredArgsConstructor
 public class Transcript {
-    private final int id;
-    @Getter private final File transcript;
+    private final List<TranscriptEntity> recentChanges = new ArrayList<>();
+    private final List<Message> messages;
 
-    public Transcript(Ticket ticket) {
-        id = ticket.getId();
+    public void addMessage(net.dv8tion.jda.api.entities.Message message, int ticketId) {
+        Message msg = new Message(message.getIdLong(), message.getContentDisplay(), message.getAuthor().getName(), message.getTimeCreated().toEpochSecond(), ticketId);
+        messages.add(msg);
+        recentChanges.add(msg);
+    }
+
+    public void addLogMessage(String log, long timestamp, int ticketId) {
+        Message message = new Message(0, log, "", timestamp, ticketId);
+        messages.add(message);
+        recentChanges.add(message);
+    }
+
+    public void editMessage(long messageId, String content, long timeEdited) {
+        Edit edit = new Edit(content, timeEdited, messageId);
+
+        messages.stream()
+                .filter(m -> m.getId() == messageId)
+                .findFirst().ifPresent(m -> m.getEdits().add(edit));
+        recentChanges.add(edit);
+    }
+
+    public void deleteMessage(long messageId) {
+        messages.stream()
+                .filter(m -> m.getId() == messageId)
+                .findFirst().ifPresent(m -> m.setDeleted(true));
+        recentChanges.stream()
+                .filter(Message.class::isInstance)
+                .filter(m -> (((Message) m).getId()) == messageId)
+                .findFirst().ifPresentOrElse(m -> ((Message) m).setDeleted(true), () -> {
+                    Message message = new Message(messageId, "", "", 0, 0);
+                    message.setDeleted(true);
+                    recentChanges.add(message);
+                });
+    }
+
+    public File toFile(int ticketId) {
         new File("./Tickets/transcripts").mkdirs();
-        transcript = new File("./Tickets/transcripts/" + id + ".txt");
+        File transcript = new File("./Tickets/transcripts/" + ticketId + ".txt");
         try {
-            if (transcript.createNewFile()) {
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
-                    writer.write("Transcript of ticket #" + id);
-                    writer.newLine();
-                }
+            if (!transcript.createNewFile()) {
+                return transcript;
             }
         } catch (IOException e) {
-            log.error("Could not create transcript", e);
+            log.error("Could not create transcript file", e);
         }
-    }
+        messages.add(0, new Message(0, "Transcript of ticket #" + ticketId, "", Instant.now().getEpochSecond(), ticketId));
 
-    public void addMessage(String message) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(transcript, true))) {
-            writer.write(message);
-            writer.newLine();
-        } catch (IOException e) {
-            log.error("Could not create transcript of ticket #" + id, e);
-        }
-    }
+            for (Message message : messages) {
+                StringBuilder builder = new StringBuilder(formatTimestamp(message.getTimestamp()));
 
-    public void editMessage(String messageId, String content) {
-        File temp = new File("./Tickets/transcripts/" + id + ".temp");
-        try {
-            temp.createNewFile();
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                 BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
-                List<String> lines = reader.lines().toList();
-                int edits = 1;
-
-                StringBuilder contentBuilder = new StringBuilder(content);
-                for (String line : lines) {
-                    if (line.split("}")[0].equals(messageId)) {
-                        if (line.split("~edit-").length > 1) {
-                            edits += Integer.parseInt(line.split("~edit-")[line.split("~edit-").length - 1].substring(0, 1));
-                        }
-                        if (edits == 1) {
-                            contentBuilder.insert(0, "~original~: " + line.split(":>>> ")[1] + " | ~edit-1~:>> ");
-                        } else {
-                            contentBuilder.insert(0, line.split("~edit-" + edits)[0].split(":>>> ")[1] + "  ~edit-" + edits + "~:>> ");
-                        }
-                        writer.write(line.split(":>>> ")[0] + ":>>> " + contentBuilder);
-                        writer.newLine();
-                    } else {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                }
-                transcript.delete();
-                temp.renameTo(new File("./Tickets/transcripts/" + id + ".txt"));
-            }
-        } catch (IOException e) {
-            log.error("Could not read transcript of ticket #" + id, e);
-        }
-    }
-
-    public void deleteMessage(String messageId) {
-        try {
-            File temp = new File("./Tickets/transcripts/" + id + ".temp");
-            temp.createNewFile();
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                 BufferedReader reader = new BufferedReader(new FileReader(transcript))) {
-                List<String> lines = reader.lines().toList();
-                for (String line : lines) {
-                    if (line.contains(messageId)) {
-                        String log;
-                        try {
-                            log = line.replace(":>>> " + line.split(":>>> ")[1], ":>>> ~~" + line.split(":>>> ")[1] + "~~");
-                        } catch (ArrayIndexOutOfBoundsException e) { return; }
-                        writer.write(log);
-                        writer.newLine();
-                    } else {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                    transcript.delete();
-                    temp.renameTo(new File("./Tickets/transcripts/" + id + ".txt"));
-                }
-            }
-        } catch (IOException e) {
-            log.error("Could not read transcript of ticket #" + id, e);
-        }
-    }
-
-    public File clean() {
-        File temp = new File("./Tickets/transcripts/" + id + ".temp");
-        try {
-            temp.createNewFile();
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(temp, true));
-                 BufferedReader reader = new BufferedReader(new FileReader(transcript));) {
-                List<String> lines = reader.lines().toList();
-
-                for (String line : lines) {
-                    if (lines.get(1).equals(line)) continue;
-                    if (lines.get(0).equals(line)) {
-                        writer.write("Transcript of ticket: #" + id);
-                        writer.newLine();
-                        continue;
-                    }
-                    if (!line.contains("} ")) {
-                        writer.write(line);
-                        writer.newLine();
-                        continue;
-                    }
-                    String content = line.split("} ")[1];
-                    writer.write(content);
+                if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
+                    writer.write(builder.append(message.getOriginalContent()).toString());
                     writer.newLine();
+                    continue;
                 }
+
+                builder.append("[").append(message.getAuthor()).append("] ");
+                List<Edit> edits = message.getEdits();
+                if (!edits.isEmpty()) {
+                    builder.append(message.getOriginalContent()).append(" | Edits:");
+
+                    for (int i = 0; i < edits.size(); i++) {
+                        builder.append(" ").append(edits.get(i).edit());
+
+                        if (edits.size() - 1 != i) {
+                            builder.append(" ->");
+                        }
+                    }
+                }
+
+                if (message.isDeleted() && message.getId() != 0) {
+                    builder.append("~~").append(message.getOriginalContent()).append("~~");
+                }
+                writer.write(builder.toString());
+                writer.newLine();
             }
-            transcript.delete();
-            temp.renameTo(transcript);
         } catch (IOException e) {
-            log.error("Could not clean transcript of ticket #" + id, e);
+            log.error("Could not clean transcript of ticket #" + ticketId, e);
         }
         return transcript;
+    }
+
+    private static String formatTimestamp(long timestamp) {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ").format(Date.from(Instant.ofEpochSecond(timestamp)));
     }
 }

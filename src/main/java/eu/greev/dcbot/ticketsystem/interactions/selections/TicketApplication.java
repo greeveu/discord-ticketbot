@@ -18,13 +18,13 @@ public class TicketApplication extends AbstractSelection {
                 .build();
 
         TextInput info = TextInput.create("info", "Information", TextInputStyle.PARAGRAPH)
-                .setPlaceholder("Give us more information")
+                .setPlaceholder("Give us more information.\nNote: You don't have to write your application in here.")
                 .setMaxLength(500)
                 .setRequired(true)
                 .build();
 
         Modal modal = Modal.create("application", "Give us more information!")
-                .addActionRows(ActionRow.of(member), ActionRow.of(info))
+                .addComponents(ActionRow.of(member), ActionRow.of(info))
                 .build();
         event.replyModal(modal).queue();
     }

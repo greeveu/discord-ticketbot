@@ -41,7 +41,7 @@ public class SetWaiting extends AbstractCommand {
         EmbedBuilder builder = new EmbedBuilder()
                 .setFooter(config.getServerName(), config.getServerLogo())
                 .setColor(Color.RED);
-        if (!ticket.getTextChannel().getName().contains("\uD83D\uDD50")) {
+        if (!ticket.isWaiting()) {
             ticketService.toggleWaiting(ticket, true);
             builder.setAuthor(member.getEffectiveName(), null, member.getEffectiveAvatarUrl())
                     .setDescription("Waiting for response.")

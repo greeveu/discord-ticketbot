@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem;
 import eu.greev.dcbot.Main;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.ticketsystem.service.Transcript;
 import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +12,8 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.events.channel.update.ChannelUpdateArchivedEvent;
 import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -28,8 +29,6 @@ import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
@@ -37,6 +36,15 @@ import java.util.concurrent.ExecutionException;
 public class TicketListener extends ListenerAdapter {
     private final TicketService ticketService;
     private final Config config;
+
+    @Override
+    public void onChannelUpdateArchived(ChannelUpdateArchivedEvent event) {
+        if (ticketService.getTicketByChannelId(event.getChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null
+                || Boolean.FALSE.equals(event.getNewValue()) || !(event.getChannel() instanceof ThreadChannel channel)) {
+            return;
+        }
+        channel.getManager().setArchived(false).queue();
+    }
 
     @Override
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
@@ -106,31 +114,27 @@ public class TicketListener extends ListenerAdapter {
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticket.getTextChannel().getName().contains("\uD83D\uDD50")) {
+        if (ticket.isWaiting()) {
             ticketService.toggleWaiting(ticket, false);
         }
-        String content = event.getMessageId() + "} "
-                + new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "[" + event.getMember().getEffectiveName() + "#" + event.getMember().getUser().getDiscriminator() + "]"
-                + ":>>> " + event.getMessage().getContentDisplay();
-        new Transcript(ticket)
-                .addMessage(content);
+        ticket.getTranscript().addMessage(event.getMessage(), ticket.getId());
     }
 
     @Override
     public void onMessageDelete(@NotNull MessageDeleteEvent event) {
         if (!event.isFromGuild() || !event.getChannelType().equals(ChannelType.TEXT) || ticketService.getTicketByChannelId(event.getChannel().getIdLong()) == null) return;
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (event.getMessageId().equals(ticket.getTempMsgId())) return;
+        if (event.getMessageId().equals(ticket.getBaseMessage())) return;
 
-        new Transcript(ticket).deleteMessage(event.getMessageId());
+        ticket.getTranscript().deleteMessage(event.getMessageIdLong());
     }
 
     @Override
     public void onMessageUpdate(@NotNull MessageUpdateEvent event) {
         if (isValid(event) || event.getAuthor().isBot()) return;
-        new Transcript(ticketService.getTicketByChannelId(event.getChannel().getIdLong()))
-                .editMessage(event.getMessageId(), event.getMessage().getContentDisplay());
+
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        ticket.getTranscript().editMessage(event.getMessageIdLong(), event.getMessage().getContentDisplay(), event.getMessage().getTimeEdited().toInstant().getEpochSecond());
     }
 
     @Override

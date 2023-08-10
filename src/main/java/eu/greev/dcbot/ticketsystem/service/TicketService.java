@@ -1,8 +1,10 @@
 package eu.greev.dcbot.ticketsystem.service;
 
+import eu.greev.dcbot.ticketsystem.entities.Edit;
+import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
+import eu.greev.dcbot.ticketsystem.entities.TranscriptEntity;
 import eu.greev.dcbot.utils.Config;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -18,22 +20,37 @@ import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@AllArgsConstructor
 public class TicketService {
     private final JDA jda;
     private final Config config;
     private final Jdbi jdbi;
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
+    public static final String WAITING_EMOTE = "\uD83D\uDD50";
+
+    public TicketService(JDA jda, Config config, Jdbi jdbi, TicketData ticketData) {
+        this.jda = jda;
+        this.config = config;
+        this.jdbi = jdbi;
+        this.ticketData = ticketData;
+
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                getOpenCachedTickets().stream()
+                        .map(Ticket::getTranscript)
+                        .map(Transcript::getRecentChanges)
+                        .filter(changes -> !changes.isEmpty())
+                        .forEach(TicketService.this::saveTranscriptChanges);
+            }
+        }, 0, TimeUnit.MINUTES.toMillis(3));
+    }
 
     public boolean createNewTicket(String info, String topic, User owner) {
         Guild guild = jda.getGuildById(config.getServerId());
@@ -46,6 +63,7 @@ public class TicketService {
         Ticket ticket = Ticket.builder()
                 .id(ticketData.getLastTicketId() + 1)
                 .ticketData(ticketData)
+                .transcript(new Transcript(new ArrayList<>()))
                 .owner(owner)
                 .topic(topic)
                 .info(info)
@@ -68,9 +86,6 @@ public class TicketService {
                 .bind(5, owner.getId())
                 .execute());
 
-        ticket.setTextChannel(ticketChannel).setThreadChannel(thread);
-        allCurrentTickets.add(ticket);
-
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
                             A member of staff will assist you shortly.
@@ -87,6 +102,10 @@ public class TicketService {
         String msgId = ticketChannel.sendMessageEmbeds(builder.build())
                 .setActionRow(Button.primary("claim", "Claim"),
                         Button.danger("close", "Close")).complete().getId();
+        ticket.setTextChannel(ticketChannel)
+                .setThreadChannel(thread)
+                .setBaseMessage(msgId);
+        allCurrentTickets.add(ticket);
 
         EmbedBuilder builder1 = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setFooter(config.getServerName(), config.getServerLogo())
@@ -101,8 +120,6 @@ public class TicketService {
                     suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {});
                     ticket.setTempMsgId(suc.getId());
                 });
-        new Transcript(ticket)
-                .addMessage(msgId);
 
         config.getAddToTicketThread().forEach(id -> {
             Role role = guild.getRoleById(id);
@@ -111,42 +128,50 @@ public class TicketService {
                 return;
             }
             Member member = guild.retrieveMemberById(id).complete();
-            if (member != null) thread.addThreadMember(member).queue();
+            if (member != null) {
+                thread.addThreadMember(member).queue();
+            }
         });
         return true;
     }
 
     public void closeTicket(Ticket ticket, boolean wasAccident, Member closer) {
-        Transcript transcript = new Transcript(ticket);
+        Transcript transcript = ticket.getTranscript();
+        int ticketId = ticket.getId();
         ticket.setCloser(closer.getUser());
         if (wasAccident) {
             ticket.getTextChannel().delete().queue();
-            jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticket.getId()).execute());
+            jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
             allCurrentTickets.remove(ticket);
 
-            transcript.getTranscript().delete();
-        }else {
-            jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
-                    .bind(0, closer.getId())
-                    .bind(1, ticket.getId())
-                    .execute());
-            String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                    + "> [" + closer.getEffectiveName() + "#" + closer.getUser().getDiscriminator() + "] closed the ticket.";
-            new Transcript(ticket).addMessage(content);
-            EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticket.getId())
-                    .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
-                    .setColor(Color.decode(config.getColor()))
-                    .setFooter(config.getServerName(), config.getServerLogo());
+            ticketData.getTranscriptData().deleteTranscript(ticket);
+            return;
+        }
+
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET closer=? WHERE ticketID=?")
+                .bind(0, closer.getId())
+                .bind(1, ticketId)
+                .execute());
+
+        transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.", Instant.now().getEpochSecond(), ticketId);
+
+        EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
+                .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
+                .setColor(Color.decode(config.getColor()))
+                .setFooter(config.getServerName(), config.getServerLogo());
+
+        if (ticket.getOwner().getMutualGuilds().contains(jda.getGuildById(config.getServerId()))) {
             try {
                 ticket.getOwner().openPrivateChannel()
-                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.clean())))
+                        .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(ticketId))))
                         .complete();
             } catch (ErrorResponseException e) {
-                log.warn("Couldn't send [" + ticket.getOwner().getName() + "#" + ticket.getOwner().getDiscriminator() + "] their transcript since an error occurred:\nMeaning:"
+                log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
                         + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
             }
-            ticket.getTextChannel().delete().queue();
         }
+        saveTranscriptChanges(ticket.getTranscript().getRecentChanges());
+        ticket.getTextChannel().delete().queue();
     }
 
     public boolean claim(Ticket ticket, User supporter) {
@@ -163,48 +188,44 @@ public class TicketService {
                 .addField("Topic", ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(config.getServerName(), config.getServerLogo());
-        if (!ticket.getInfo().equals(Strings.EMPTY))
+        if (!ticket.getInfo().equals(Strings.EMPTY)) {
             builder.addField("Information", ticket.getInfo(), false);
+        }
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
-        String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "> [" + supporter.getName() + "#" + supporter.getDiscriminator() + "] claimed the ticket.";
-        new Transcript(ticket).addMessage(content);
-        try (BufferedReader reader = new BufferedReader(new FileReader(new Transcript(ticket).getTranscript()))) {
-            ticket.getTextChannel()
-                    .editMessageEmbedsById(reader.lines().toList().get(1), builder.build()).setActionRow(Button.danger("close", "Close")).queue();
-        } catch (IOException e) {
-            log.error("Could not get Embed ID from transcript because", e);
-        }
+        ticket.getTranscript().addLogMessage("[" + supporter.getName() + "] claimed the ticket.", Instant.now().getEpochSecond(), ticket.getId());
+        ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
+                .setActionRow(Button.danger("close", "Close"))
+                .queue();
         return true;
     }
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
-        String name = ticket.getTextChannel().getName();
-        String waitingEmote = "\uD83D\uDD50";
         TextChannelManager manager = ticket.getTextChannel().getManager();
+        String channelName = generateChannelName(ticket.getTopic(), ticket.getId());
+        ticket.setWaiting(waiting);
         if (waiting) {
-            name = name.contains("✓") ? name.replace("✓", waitingEmote) : waitingEmote + name;
-            manager.setName(name).queue();
-        }else {
-            if (ticket.getSupporter() != null) {
-                manager.setName("✓-" + name.replace(waitingEmote, "").replace("✓", "")).queue();
-            } else {
-                manager.setName(name.replace(waitingEmote, "").replace("✓", "")).queue();
+            manager.setName(WAITING_EMOTE + "-" + channelName).queue();
+        } else {
+            if (ticket.getSupporter() == null) {
+                manager.setName(channelName).queue();
+                return;
             }
+            manager.setName("✓-" + channelName).queue();
         }
     }
 
     public boolean addUser(Ticket ticket, User user) {
         Guild guild = ticket.getTextChannel().getGuild();
         PermissionOverride permissionOverride = ticket.getTextChannel().getPermissionOverride(guild.getMember(user));
-        if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
+        if ((permissionOverride != null && permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL))
+                || guild.getMember(user).getPermissions().contains(Permission.ADMINISTRATOR)) {
             return false;
         }
-        String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "> [" + user.getName() + "#" + user.getDiscriminator() + "] got added to the ticket.";
-        new Transcript(ticket).addMessage(content);
+
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got added to the ticket.", Instant.now().getEpochSecond(), ticket.getId());
+
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
         ticket.addInvolved(user.getId());
         return true;
@@ -216,33 +237,27 @@ public class TicketService {
         if (permissionOverride == null || !permissionOverride.getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
-        String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "> [" + user.getName() + "#" + user.getDiscriminator() + "] got removed from the ticket.";
-        new Transcript(ticket).addMessage(content);
+        ticket.getTranscript().addLogMessage("[" + user.getName() + "] got removed from the ticket.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.getTextChannel().upsertPermissionOverride(guild.getMember(user)).setDenied(Permission.VIEW_CHANNEL).queue();
         ticket.removeInvolved(user.getId());
         return true;
     }
 
     public boolean setOwner(Ticket ticket, Member owner) {
-        if (ticket.getTextChannel().getPermissionOverride(owner) == null) {
+        if (ticket.getTextChannel().getPermissionOverride(owner) == null
+                || !ticket.getTextChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
             return false;
         }
-        if (!ticket.getTextChannel().getPermissionOverride(owner).getAllowed().contains(Permission.VIEW_CHANNEL)) {
-            return false;
-        }
-        String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "> [" + owner.getEffectiveName() + "#" + owner.getUser().getDiscriminator() + "] is the new ticket owner.";
-        new Transcript(ticket).addMessage(content);
+
+        ticket.getTranscript().addLogMessage("[" + owner.getUser().getName() + "] is the new ticket owner.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.setOwner(owner.getUser());
         updateChannelTopic(ticket);
         return true;
     }
 
     public void setTopic(Ticket ticket, String topic) {
-        String content = new SimpleDateFormat("[hh:mm:ss a '|' dd'th' MMM yyyy] ").format(new Date(System.currentTimeMillis()))
-                + "> Set new topic to '" + topic + "'";
-        new Transcript(ticket).addMessage(content);
+        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", Instant.now().getEpochSecond(), ticket.getId());
+
         ticket.setTopic(topic);
         updateChannelTopic(ticket);
     }
@@ -255,7 +270,9 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(idLong);
-            if (loadedTicket.getOwner() == null) return null;
+            if (loadedTicket.getOwner() == null) {
+                return null;
+            }
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
@@ -268,10 +285,16 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(ticketID);
-            if (loadedTicket.getOwner() == null) return null;
+            if (loadedTicket.getOwner() == null) {
+                return null;
+            }
             allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
+    }
+
+    public List<Ticket> getOpenCachedTickets() {
+        return allCurrentTickets.stream().filter(ticket -> ticket.getCloser() == null).toList();
     }
 
     public List<Integer> getTicketIdsByOwner(User owner) {
@@ -281,9 +304,32 @@ public class TicketService {
     public void updateChannelTopic(Ticket ticket) {
         if (ticket.getSupporter() == null) {
             ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
-        }else {
+        } else {
             ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
+    }
+
+    private void saveTranscriptChanges(List<TranscriptEntity> changes) {
+        TranscriptData transcriptData = ticketData.getTranscriptData();
+        for (TranscriptEntity entity : changes) {
+            if (entity instanceof Edit edit) {
+                transcriptData.addEditToMessage(edit);
+                continue;
+            }
+            Message message = (Message) entity;
+
+            if (message.getId() == 0 && message.getAuthor().equals(Strings.EMPTY)) {
+                transcriptData.addLogMessage(message);
+                continue;
+            }
+
+            if (message.isDeleted()) {
+                transcriptData.deleteMessage(message.getId());
+            } else {
+                transcriptData.addNewMessage(message);
+            }
+        }
+        changes.clear();
     }
 
     private String generateChannelName(String topic, int ticketId) {

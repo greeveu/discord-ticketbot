@@ -2,7 +2,6 @@ package eu.greev.dcbot.ticketsystem.interactions.buttons;
 
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
-import eu.greev.dcbot.ticketsystem.service.Transcript;
 import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -31,7 +30,7 @@ public class GetTranscript extends AbstractButton {
         Ticket ticket = ticketService.getTicketByTicketId(ticketID);
 
         event.getUser().openPrivateChannel()
-                .flatMap(channel -> channel.sendFiles(FileUpload.fromData(new Transcript(ticket).getTranscript())))
+                .flatMap(channel -> channel.sendFiles(FileUpload.fromData(ticket.getTranscript().toFile(ticketID))))
                 .queue();
 
         EmbedBuilder builder = new EmbedBuilder()
