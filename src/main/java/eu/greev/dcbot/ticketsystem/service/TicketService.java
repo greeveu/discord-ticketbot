@@ -270,10 +270,9 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(idLong);
-            if (loadedTicket.getOwner() == null) {
-                return null;
+            if (loadedTicket.getOwner() != null) {
+                allCurrentTickets.add(loadedTicket);
             }
-            allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
     }
@@ -285,10 +284,9 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(ticketID);
-            if (loadedTicket.getOwner() == null) {
-                return null;
+            if (loadedTicket.getOwner() != null) {
+                allCurrentTickets.add(loadedTicket);
             }
-            allCurrentTickets.add(loadedTicket);
             return loadedTicket;
         });
     }

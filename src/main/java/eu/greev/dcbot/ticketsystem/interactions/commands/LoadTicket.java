@@ -12,7 +12,7 @@ import org.apache.logging.log4j.util.Strings;
 
 import java.awt.*;
 
-public class LoadTicket extends AbstractCommand{
+public class LoadTicket extends AbstractCommand {
 
     public LoadTicket(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
         super(config, ticketService, missingPerm, jda);
