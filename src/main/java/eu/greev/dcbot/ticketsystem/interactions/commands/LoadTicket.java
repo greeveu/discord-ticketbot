@@ -45,7 +45,7 @@ public class LoadTicket extends AbstractCommand {
                 .setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
                 .addField("Topic", ticket.getTopic(), false)
                 .addField("Owner", ticket.getOwner().getAsMention(), false)
-                .addField("Closer", ticket.getCloser().getAsMention(), false);
+                .addField("Closer", ticket.getCloser() == null ? "No closer" : ticket.getCloser().getAsMention(), false);
 
         if (ticket.getSupporter() != null)
             builder.addField("Supporter", ticket.getSupporter().getAsMention(), false);

@@ -25,7 +25,7 @@ public class TicketData {
         Ticket.TicketBuilder builder = jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
                 .bind(0, ticketID)
                 .map((resultSet, index, ctx) -> {
-                    if (!resultSet.next()) {
+                    if (resultSet.getString("owner").equals(Strings.EMPTY)) {
                         return null;
                     }
 

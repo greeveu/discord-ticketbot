@@ -270,7 +270,7 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(idLong);
-            if (loadedTicket.getOwner() != null) {
+            if (loadedTicket != null) {
                 allCurrentTickets.add(loadedTicket);
             }
             return loadedTicket;
@@ -284,7 +284,7 @@ public class TicketService {
 
         return optionalTicket.orElseGet(() -> {
             Ticket loadedTicket = ticketData.loadTicket(ticketID);
-            if (loadedTicket.getOwner() != null) {
+            if (loadedTicket != null) {
                 allCurrentTickets.add(loadedTicket);
             }
             return loadedTicket;
