@@ -48,5 +48,12 @@ public class ThreadJoin extends AbstractCommand {
             return;
         }
         thread.addThreadMember(event.getMember()).queue();
+
+        event.replyEmbeds(new EmbedBuilder().setColor(Color.decode(config.getColor()))
+                        .setFooter(config.getServerName(), config.getServerLogo())
+                        .addField("✅ **Successfully joined**", "You were successfully added to the Ticket thread #" + ticket.getId(), false)
+                        .build())
+                .setEphemeral(true)
+                .queue();
     }
 }

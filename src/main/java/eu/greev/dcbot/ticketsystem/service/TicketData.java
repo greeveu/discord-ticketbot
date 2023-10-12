@@ -22,16 +22,20 @@ public class TicketData {
     }
 
     protected Ticket loadTicket(int ticketID) {
-        Ticket.TicketBuilder builder = Ticket.builder().ticketData(this).id(ticketID);
-
-        jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
+        Ticket.TicketBuilder builder = jdbi.withHandle(handle -> handle.createQuery("SELECT * FROM tickets WHERE ticketID = ?")
                 .bind(0, ticketID)
                 .map((resultSet, index, ctx) -> {
-                    jda.retrieveUserById(resultSet.getString("owner")).complete();
-                    builder.textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
+                    if (resultSet.getString("owner").equals(Strings.EMPTY)) {
+                        return null;
+                    }
+
+                    Ticket.TicketBuilder ticketBuilder = Ticket.builder()
+                            .ticketData(this)
+                            .id(ticketID)
+                            .textChannel(jda.getTextChannelById(resultSet.getString("channelID")))
                             .threadChannel(!resultSet.getString("threadID").equals(Strings.EMPTY)
                                     ? jda.getThreadChannelById(resultSet.getString("threadID")) : null)
-                            .owner(jda.getUserById(resultSet.getString("owner")))
+                            .owner(jda.retrieveUserById(resultSet.getString("owner")).complete())
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
                             .isWaiting(resultSet.getBoolean("isWaiting"))
@@ -39,16 +43,20 @@ public class TicketData {
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
 
                     if (!resultSet.getString("closer").equals(Strings.EMPTY)) {
-                        builder.closer(jda.retrieveUserById(resultSet.getString("closer")).complete());
+                        ticketBuilder.closer(jda.retrieveUserById(resultSet.getString("closer")).complete());
                     }
 
                     if (!resultSet.getString("supporter").equals(Strings.EMPTY)) {
-                        builder.supporter(jda.retrieveUserById(resultSet.getString("supporter")).complete());
+                        ticketBuilder.supporter(jda.retrieveUserById(resultSet.getString("supporter")).complete());
                     }
 
-                    return null;
+                    return ticketBuilder;
                 })
-                .findFirst());
+                .findFirst()).orElse(null);
+
+        if (builder == null) {
+            return null;
+        }
 
         return builder.transcript(transcriptData.loadTranscript(ticketID)).build();
     }
