@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS tickets
 
     baseMessage VARCHAR     DEFAULT ""                  NOT NULL,
 
+    isOpen      BOOL        DEFAULT 1,
+
 	closer      VARCHAR     DEFAULT ""
 );
 CREATE TABLE IF NOT EXISTS messages

@@ -37,6 +37,13 @@ public class GetTickets extends AbstractCommand {
             builder.setTitle("This user opened following tickets:");
             for (Integer id : tickets) {
                 Ticket ticket = ticketService.getTicketByTicketId(id);
+                if (ticket == null) {
+                    EmbedBuilder error = new EmbedBuilder()
+                            .setColor(Color.RED)
+                            .setDescription("❌ **Something went wrong, please report this to the Bot creator!**");
+                    event.replyEmbeds(error.build()).setEphemeral(true).queue();
+                    return;
+                }
                 builder.addField(generateName(ticket.getTopic(), id), ticket.getTopic(), false);
             }
         }

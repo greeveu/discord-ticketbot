@@ -3,7 +3,6 @@ package eu.greev.dcbot.ticketsystem.service;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.User;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
 
@@ -38,6 +37,7 @@ public class TicketData {
                             .owner(jda.retrieveUserById(resultSet.getString("owner")).complete())
                             .topic(resultSet.getString("topic"))
                             .info(resultSet.getString("info"))
+                            .isOpen(resultSet.getBoolean("isOpen"))
                             .isWaiting(resultSet.getBoolean("isWaiting"))
                             .baseMessage(resultSet.getString("baseMessage"))
                             .involved(new ArrayList<>(List.of(resultSet.getString("involved").split(", "))));
@@ -65,11 +65,18 @@ public class TicketData {
         return this.loadTicket(getTicketIdByChannelId(ticketChannelID));
     }
 
-    protected List<Integer> getTicketIdsByUser(User user) {
+    protected List<Integer> getTicketIdsByUser(String user) {
         return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE owner=?")
-                .bind(0, user.getId())
+                .bind(0, user)
                 .mapTo(Integer.class)
                 .list());
+    }
+
+    public Integer getOpenTicketOfUser(String user) {
+        return jdbi.withHandle(handle -> handle.createQuery("SELECT ticketID FROM tickets WHERE owner=? AND isOpen=true")
+                .bind(0, user)
+                .mapTo(Integer.class)
+                .findFirst().orElse(null));
     }
 
     public Integer getLastTicketId() {
@@ -88,7 +95,7 @@ public class TicketData {
     }
 
     public void saveTicket(Ticket ticket) {
-        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, isWaiting=?, owner=?, supporter=?, involved=?, baseMessage=? WHERE ticketID =?")
+        jdbi.withHandle(handle -> handle.createUpdate("UPDATE tickets SET channelID=?, threadID=?, topic=?, info=?, isWaiting=?, owner=?, supporter=?, involved=?, baseMessage=?, isOpen=? WHERE ticketID =?")
                 .bind(0, ticket.getTextChannel() != null ? ticket.getTextChannel().getId() : "")
                 .bind(1, ticket.getThreadChannel() != null ? ticket.getThreadChannel().getId() : "")
                 .bind(2, ticket.getTopic() != null ? ticket.getTopic() : "No topic given")
@@ -99,7 +106,8 @@ public class TicketData {
                 .bind(7, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
                 .bind(8, ticket.getBaseMessage())
-                .bind(9, ticket.getId())
+                .bind(9, ticket.isOpen())
+                .bind(10, ticket.getId())
                 .execute());
     }
 }
