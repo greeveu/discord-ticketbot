@@ -7,6 +7,7 @@ import eu.greev.dcbot.utils.Config;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
@@ -14,6 +15,8 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.events.channel.update.ChannelUpdateArchivedEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.guild.update.GuildUpdateIconEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -26,9 +29,11 @@ import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
@@ -44,6 +49,46 @@ public class TicketListener extends ListenerAdapter {
             return;
         }
         channel.getManager().setArchived(false).queue();
+    }
+
+    @Override
+    public void onGuildMemberRemove(GuildMemberRemoveEvent event) {
+        Ticket ticket = ticketService.getOpenTicket(event.getUser());
+        if (ticket == null) {
+            return;
+        }
+        ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has left the server.", Instant.now().getEpochSecond(), ticket.getId());
+        EmbedBuilder info = new EmbedBuilder()
+                .setColor(Color.RED)
+                .setFooter(config.getServerName(), config.getServerLogo())
+                .addField("ℹ️ **Member left**", ticket.getOwner().getAsMention() + " has left the server.", false);
+        MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
+                .addEmbeds(info.build());
+        if (ticket.getSupporter() != null) {
+            messageBuilder.addContent(ticket.getSupporter().getAsMention());
+        }
+        ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
+    }
+
+    @Override
+    public void onGuildMemberJoin(GuildMemberJoinEvent event) {
+        Ticket ticket = ticketService.getOpenTicket(event.getUser());
+        if (ticket == null) {
+            return;
+        }
+        ticket.getTextChannel().upsertPermissionOverride(event.getMember()).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+        ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has rejoined the server.", Instant.now().getEpochSecond(), ticket.getId());
+
+        EmbedBuilder info = new EmbedBuilder()
+                .setColor(Color.RED)
+                .setFooter(config.getServerName(), config.getServerLogo())
+                .addField("ℹ️ **Member rejoined**", ticket.getOwner().getAsMention() + " has rejoined the server and was granted access to that ticket again.", false);
+        MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
+                .addEmbeds(info.build());
+        if (ticket.getSupporter() != null) {
+            messageBuilder.addContent(ticket.getSupporter().getAsMention());
+        }
+        ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
     }
 
     @Override
@@ -67,26 +112,6 @@ public class TicketListener extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         if (!event.getName().equals("ticket") || !isValidSlashEvent(event)) return;
         Main.INTERACTIONS.get((event.getSubcommandGroup() == null ? "" : event.getSubcommandGroup() + " ") + event.getSubcommandName()).execute(event);
-    }
-
-    private boolean isValidSlashEvent(SlashCommandInteractionEvent event) {
-        if (!event.isFromGuild()) {
-            event.replyEmbeds(new EmbedBuilder()
-                            .setColor(Color.RED)
-                            .setDescription("You have to use this command in a guild!")
-                            .build())
-                    .setEphemeral(true)
-                    .queue();
-            return false;
-        }
-        if (config.getServerName() == null && !event.getSubcommandName().equals("setup")) {
-            EmbedBuilder error = new EmbedBuilder()
-                    .setColor(Color.RED)
-                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
-            event.replyEmbeds(error.build()).setEphemeral(true).queue();
-            return false;
-        }
-        return true;
     }
 
     /*
@@ -168,6 +193,26 @@ public class TicketListener extends ListenerAdapter {
             log.error("An error occurred while handling message history", e);
             Thread.currentThread().interrupt();
         }
+    }
+
+    private boolean isValidSlashEvent(SlashCommandInteractionEvent event) {
+        if (!event.isFromGuild()) {
+            event.replyEmbeds(new EmbedBuilder()
+                            .setColor(Color.RED)
+                            .setDescription("You have to use this command in a guild!")
+                            .build())
+                    .setEphemeral(true)
+                    .queue();
+            return false;
+        }
+        if (config.getServerName() == null && !event.getSubcommandName().equals("setup")) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Ticketsystem wasn't setup, please tell an Admin to use </ticket setup:0>!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return false;
+        }
+        return true;
     }
 
     private boolean isValid(GenericMessageEvent event) {
