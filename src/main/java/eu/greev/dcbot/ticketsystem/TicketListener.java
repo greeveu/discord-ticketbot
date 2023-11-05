@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
 import net.dv8tion.jda.api.events.channel.update.ChannelUpdateArchivedEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
@@ -89,6 +90,15 @@ public class TicketListener extends ListenerAdapter {
             messageBuilder.addContent(ticket.getSupporter().getAsMention());
         }
         ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
+    }
+
+    @Override
+    public void onChannelDelete(ChannelDeleteEvent event) {
+        Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
+        if (ticket == null) {
+            return;
+        }
+        ticket.setOpen(false);
     }
 
     @Override
