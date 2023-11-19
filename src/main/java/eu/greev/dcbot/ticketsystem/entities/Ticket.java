@@ -31,6 +31,7 @@ public class Ticket {
     @Getter private final int id;
     @Getter private TextChannel textChannel;
     @Getter private ThreadChannel threadChannel;
+    @Getter private boolean isOpen;
     private final TicketData ticketData;
     private static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(10);
 
@@ -54,6 +55,12 @@ public class Ticket {
 
     public Ticket setTopic(String topic) {
         this.topic = topic;
+        this.save();
+        return this;
+    }
+
+    public Ticket setOpen(boolean isOpen) {
+        this.isOpen = isOpen;
         this.save();
         return this;
     }

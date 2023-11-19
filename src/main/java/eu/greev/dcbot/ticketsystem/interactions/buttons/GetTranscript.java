@@ -29,6 +29,14 @@ public class GetTranscript extends AbstractButton {
         int ticketID = Integer.parseInt(event.getMessage().getEmbeds().get(0).getTitle().replace("Ticket #", ""));
         Ticket ticket = ticketService.getTicketByTicketId(ticketID);
 
+        if (ticket == null) {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setDescription("❌ **Something went wrong, please report this to the Bot creator!**");
+            event.replyEmbeds(error.build()).setEphemeral(true).queue();
+            return;
+        }
+
         event.getUser().openPrivateChannel()
                 .flatMap(channel -> channel.sendFiles(FileUpload.fromData(ticket.getTranscript().toFile(ticketID))))
                 .queue();

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "eu.greev"
-version = "1.1.2"
+version = "1.2.2"
 
 repositories {
     mavenCentral()

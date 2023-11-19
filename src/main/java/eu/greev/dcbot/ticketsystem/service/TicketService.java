@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
+import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.time.Instant;
@@ -66,6 +67,7 @@ public class TicketService {
                 .transcript(new Transcript(new ArrayList<>()))
                 .owner(owner)
                 .topic(topic)
+                .isOpen(true)
                 .info(info)
                 .build();
 
@@ -138,7 +140,7 @@ public class TicketService {
     public void closeTicket(Ticket ticket, boolean wasAccident, Member closer) {
         Transcript transcript = ticket.getTranscript();
         int ticketId = ticket.getId();
-        ticket.setCloser(closer.getUser());
+        ticket.setCloser(closer.getUser()).setOpen(false);
         if (wasAccident) {
             ticket.getTextChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
@@ -179,7 +181,7 @@ public class TicketService {
 
         ticket.setSupporter(supporter);
         updateChannelTopic(ticket);
-        ticket.getTextChannel().getManager().setName("✓-" + ticket.getTextChannel().getName()).queue();
+        ticket.getTextChannel().getManager().setName("✓-" + generateChannelName(ticket.getTopic(), ticket.getId())).queue();
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
                            A member of staff will assist you shortly.
@@ -296,14 +298,23 @@ public class TicketService {
     }
 
     public List<Integer> getTicketIdsByOwner(User owner) {
-        return ticketData.getTicketIdsByUser(owner);
+        return ticketData.getTicketIdsByUser(owner.getId());
+    }
+
+    public @Nullable Ticket getOpenTicket(User owner) {
+        Integer ticketId = ticketData.getOpenTicketOfUser(owner.getId());
+        if (ticketId == null) {
+            return null;
+        }
+        return this.getTicketByTicketId(ticketId);
     }
 
     public void updateChannelTopic(Ticket ticket) {
+        TextChannelManager channelManager = ticket.getTextChannel().getManager();
         if (ticket.getSupporter() == null) {
-            ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
+            channelManager.setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
         } else {
-            ticket.getTextChannel().getManager().setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
+            channelManager.setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
         }
     }
 
