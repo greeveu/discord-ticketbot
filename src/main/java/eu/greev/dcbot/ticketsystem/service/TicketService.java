@@ -297,8 +297,8 @@ public class TicketService {
         return allCurrentTickets.stream().filter(ticket -> ticket.getCloser() == null).toList();
     }
 
-    public List<Integer> getTicketIdsByOwner(User owner) {
-        return ticketData.getTicketIdsByUser(owner.getId());
+    public List<Integer> getTicketIdsByOwner(String owner) {
+        return ticketData.getTicketIdsByUser(owner);
     }
 
     public @Nullable Ticket getOpenTicket(User owner) {

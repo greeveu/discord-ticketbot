@@ -4,9 +4,7 @@ import eu.greev.dcbot.ticketsystem.TicketListener;
 import eu.greev.dcbot.ticketsystem.interactions.Interaction;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClaim;
 import eu.greev.dcbot.ticketsystem.interactions.TicketClose;
-import eu.greev.dcbot.ticketsystem.interactions.buttons.GetTranscript;
-import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketConfirm;
-import eu.greev.dcbot.ticketsystem.interactions.buttons.TicketNevermind;
+import eu.greev.dcbot.ticketsystem.interactions.buttons.*;
 import eu.greev.dcbot.ticketsystem.interactions.commands.*;
 import eu.greev.dcbot.ticketsystem.interactions.modals.Application;
 import eu.greev.dcbot.ticketsystem.interactions.modals.Bug;
@@ -162,6 +160,9 @@ public class Main {
 
         registerInteraction("thread add", new ThreadAdd(config, ticketService, wrongChannel, missingPerm, jda));
         registerInteraction("thread join", new ThreadJoin(config, ticketService, wrongChannel, missingPerm, jda));
+
+        registerInteraction("tickets-forwards", new TicketsForward(ticketService));
+        registerInteraction("tickets-backwards", new TicketsBackwards(ticketService));
 
         log.info("Started: " + OffsetDateTime.now(ZoneId.systemDefault()));
     }
