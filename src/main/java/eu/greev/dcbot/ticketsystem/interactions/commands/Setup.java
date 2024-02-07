@@ -1,5 +1,6 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
+import eu.greev.dcbot.Main;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
 import lombok.extern.slf4j.Slf4j;
@@ -101,9 +102,9 @@ public class Setup extends AbstractCommand {
                 .setColor(color)
                 .addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?
-                        Just click the one of the buttons below or use </ticket create:1030837558994804847> somewhere else.
+                        Just click the one of the buttons below or use </ticket create:%s> somewhere else.
                         We will try to handle your ticket as soon as possible.
-                        """, false));
+                        """.formatted(Main.getCreateCommandId()), false));
 
         StringSelectMenu.Builder selectionBuilder = StringSelectMenu.create("ticket-create-topic")
                 .setPlaceholder("Select your ticket topic")

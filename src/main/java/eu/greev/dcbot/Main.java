@@ -17,6 +17,7 @@ import eu.greev.dcbot.ticketsystem.interactions.selections.TicketPardon;
 import eu.greev.dcbot.ticketsystem.service.TicketData;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -24,6 +25,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.exceptions.InvalidTokenException;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -51,8 +53,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class Main {
-    private static Jdbi jdbi;
     public static final Map<String, Interaction> INTERACTIONS = new HashMap<>();
+    @Getter private static String createCommandId;
+    @Getter private static String getTicketCommandId;
+    private static Jdbi jdbi;
 
     public static void main(String[] args) throws InterruptedException, IOException {
         PropertyConfigurator.configure(Main.class.getClassLoader().getResourceAsStream("log4j2.properties"));
@@ -123,7 +127,14 @@ public class Main {
                         .addSubcommands(new SubcommandData("add", "Add a staff member to the ticket thread")
                                 .addOption(OptionType.USER, "staff", "Staff member to add", true))
                         .addSubcommands(new SubcommandData("join", "Join the ticket thread")))
-                ).queue();
+                ).queue(s -> s.get(0).getSubcommands().forEach(c ->  {
+                    if (c.getName().equals("get-tickets")) {
+                            getTicketCommandId = c.getId();
+                    } else if (c.getName().equals("create")) {
+                        createCommandId = c.getId();
+                    }
+                })
+        );
 
         EmbedBuilder missingPerm = new EmbedBuilder().setColor(Color.RED)
                 .addField("❌ **Missing permission**", "You are not permitted to use this command!", false);
