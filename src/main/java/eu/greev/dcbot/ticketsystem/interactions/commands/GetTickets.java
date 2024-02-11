@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 public class GetTickets extends AbstractCommand {
     public static final List<ScrollEntity> PAGE_SCROLL_CACHE = new ArrayList<>();
+    public static final int PAGE_SIZE = 25; // this value shouldn't be greater than 25 because of Discord limitations
 
     public GetTickets(Config config, TicketService ticketService, EmbedBuilder missingPerm, JDA jda) {
         super(config, ticketService, missingPerm, jda);
@@ -28,7 +30,7 @@ public class GetTickets extends AbstractCommand {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                PAGE_SCROLL_CACHE.removeIf(entity -> System.currentTimeMillis() - entity.getTimeCreated() > TimeUnit.HOURS.toMillis(12));
+                PAGE_SCROLL_CACHE.removeIf(entity -> Instant.now().toEpochMilli() - entity.getTimeCreated() > TimeUnit.HOURS.toMillis(12));
             }
         }, 0, TimeUnit.MINUTES.toMillis(5));
     }
@@ -54,7 +56,7 @@ public class GetTickets extends AbstractCommand {
             return;
         }
 
-        for (int i = 0; i < 25; i++) {
+        for (int i = 0; i < PAGE_SIZE; i++) {
             if (tickets.size() - 1 == i) break;
             Ticket ticket = ticketService.getTicketByTicketId(tickets.get(i));
             if (ticket == null) {
@@ -67,9 +69,9 @@ public class GetTickets extends AbstractCommand {
             builder.addField(generateName(ticket.getTopic(), tickets.get(i)), ticket.getTopic(), false);
         }
 
-        int maxPage = tickets.size() / 25 + (tickets.size() % 25 == 0 ? 0 : 1);
+        int maxPage = tickets.size() / PAGE_SIZE + (tickets.size() % PAGE_SIZE == 0 ? 0 : 1);
         PAGE_SCROLL_CACHE.removeIf(e -> e.getHandlerId() == event.getMember().getIdLong());
-        ScrollEntity scrollEntity = new ScrollEntity(event.getMember().getIdLong(), user.getIdLong(), maxPage, System.currentTimeMillis());
+        ScrollEntity scrollEntity = new ScrollEntity(event.getMember().getIdLong(), user.getIdLong(), maxPage, Instant.now().toEpochMilli());
 
         event.replyEmbeds(builder.setDescription("Page 1/%d".formatted(maxPage)).build()).setActionRow(
                 Button.primary("tickets-backwards", Emoji.fromUnicode("◀️")),

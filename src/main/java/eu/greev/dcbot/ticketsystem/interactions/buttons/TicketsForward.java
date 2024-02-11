@@ -5,15 +5,17 @@ import eu.greev.dcbot.ticketsystem.entities.ScrollEntity;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.interactions.commands.GetTickets;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
+import eu.greev.dcbot.utils.TicketEmojis;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.*;
 import java.util.List;
+
+import static eu.greev.dcbot.ticketsystem.interactions.commands.GetTickets.PAGE_SIZE;
 
 @AllArgsConstructor
 public class TicketsForward extends AbstractButton{
@@ -50,7 +52,7 @@ public class TicketsForward extends AbstractButton{
 
         List<Integer> tickets = ticketService.getTicketIdsByOwner(entity.getUserId());
 
-        for (int i = currentPage * 25; i < (currentPage + 1) * 25; i++) {
+        for (int i = currentPage * PAGE_SIZE; i < (currentPage + 1) * PAGE_SIZE; i++) {
             if (tickets.size() == i) break;
             Ticket ticket = ticketService.getTicketByTicketId(tickets.get(i));
             if (ticket == null) {
@@ -66,8 +68,8 @@ public class TicketsForward extends AbstractButton{
         entity.setCurrentPage(currentPage + 1);
 
         event.replyEmbeds(builder.build()).setActionRow(
-                Button.primary("tickets-backwards", Emoji.fromUnicode("◀️")),
-                Button.primary("tickets-forwards", Emoji.fromUnicode("▶️"))
+                Button.primary("tickets-backwards", TicketEmojis.BACKWARDS.getEmoji()),
+                Button.primary("tickets-forwards", TicketEmojis.FORWARDS.getEmoji())
         ).setEphemeral(true).queue();
     }
 }
