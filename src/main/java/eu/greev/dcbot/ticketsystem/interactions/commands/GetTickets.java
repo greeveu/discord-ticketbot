@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.awt.*;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -30,7 +31,10 @@ public class GetTickets extends AbstractCommand {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                PAGE_SCROLL_CACHE.removeIf(entity -> Instant.now().toEpochMilli() - entity.getTimeCreated() > TimeUnit.HOURS.toMillis(12));
+                PAGE_SCROLL_CACHE.removeIf(entity -> Instant.now()
+                        .minus(12, ChronoUnit.HOURS)
+                        .isAfter(Instant.ofEpochMilli(entity.getTimeCreated()))
+                );
             }
         }, 0, TimeUnit.MINUTES.toMillis(5));
     }
