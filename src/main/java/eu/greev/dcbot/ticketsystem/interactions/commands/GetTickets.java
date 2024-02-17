@@ -61,7 +61,7 @@ public class GetTickets extends AbstractCommand {
         }
 
         for (int i = 0; i < PAGE_SIZE; i++) {
-            if (tickets.size() - 1 == i) break;
+            if (tickets.size() == i) break;
             Ticket ticket = ticketService.getTicketByTicketId(tickets.get(i));
             if (ticket == null) {
                 EmbedBuilder error = new EmbedBuilder()

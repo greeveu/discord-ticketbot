@@ -294,7 +294,7 @@ public class TicketService {
     }
 
     public List<Ticket> getOpenCachedTickets() {
-        return allCurrentTickets.stream().filter(ticket -> ticket.getCloser() == null).toList();
+        return allCurrentTickets.stream().filter(Ticket::isOpen).toList();
     }
 
     public List<Integer> getTicketIdsByOwner(long owner) {
