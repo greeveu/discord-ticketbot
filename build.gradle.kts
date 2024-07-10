@@ -2,11 +2,11 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     java
-    id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 group = "eu.greev"
-version = "1.3.1"
+version = "1.4.0"
 
 repositories {
     mavenCentral()
@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation("net.dv8tion", "JDA", "5.0.0-beta.10") {
+    implementation("net.dv8tion", "JDA", "5.0.0") {
         exclude("club.minnced", "opus-java")
     }
     implementation("org.jdbi", "jdbi3-oracle12", "3.32.0")
