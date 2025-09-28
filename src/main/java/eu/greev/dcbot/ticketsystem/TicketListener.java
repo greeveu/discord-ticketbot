@@ -45,8 +45,15 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onChannelUpdateArchived(ChannelUpdateArchivedEvent event) {
-        if (ticketService.getTicketByChannelId(event.getChannel().asThreadChannel().getParentMessageChannel().getIdLong()) == null
-                || Boolean.FALSE.equals(event.getNewValue()) || !(event.getChannel() instanceof ThreadChannel channel)) {
+        if (!(event.getChannel() instanceof ThreadChannel channel) || Boolean.FALSE.equals(event.getNewValue())) {
+            return;
+        }
+        // Only handle threads under TEXT channels (ignore Forum threads)
+        var parent = channel.getParentChannel();
+        if (parent.getType() != ChannelType.TEXT) {
+            return;
+        }
+        if (ticketService.getTicketByChannelId(parent.getIdLong()) == null) {
             return;
         }
         channel.getManager().setArchived(false).queue();
@@ -129,30 +136,36 @@ public class TicketListener extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
-        if (event.getChannelType() == ChannelType.GUILD_PRIVATE_THREAD && event.isFromGuild()
-                && ticketService.getTicketByChannelId(event.getGuildChannel().asThreadChannel().getParentMessageChannel().getIdLong()) != null) {
+        if (event.getChannelType() == ChannelType.GUILD_PRIVATE_THREAD && event.isFromGuild()) {
+            ThreadChannel thread = event.getGuildChannel().asThreadChannel();
+            var parent = thread.getParentChannel();
+            if (parent != null && parent.getType() == ChannelType.TEXT
+                    && ticketService.getTicketByChannelId(parent.getIdLong()) != null) {
 
-            for (Member member : event.getMessage().getMentions().getMembers()) {
-                if (member.getRoles().stream().map(Role::getIdLong).toList().contains(config.getStaffId())) continue;
-                event.getGuildChannel().asThreadChannel().removeThreadMember(member).queue();
+                for (Member member : event.getMessage().getMentions().getMembers()) {
+                    if (member.getRoles().stream().map(Role::getIdLong).toList().contains(config.getStaffId())) continue;
+                    event.getGuildChannel().asThreadChannel().removeThreadMember(member).queue();
 
-                User author = event.getAuthor();
-                event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
-                        .addField("❌ **Failed**", author.getAsMention() + " messed up and pinged " + member.getAsMention(), false)
-                        .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
-                        .build()).queue();
-                break;
+                    User author = event.getAuthor();
+                    event.getChannel().sendMessageEmbeds(new EmbedBuilder().setColor(Color.RED)
+                            .addField("❌ **Failed**", author.getAsMention() + " messed up and pinged " + member.getAsMention(), false)
+                            .setAuthor(author.getName(), null, author.getEffectiveAvatarUrl())
+                            .build()).queue();
+                    break;
+                }
+                return;
             }
-            return;
         }
 
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        if (ticket.isWaiting()) {
+        if (ticket != null && ticket.isWaiting()) {
             ticketService.toggleWaiting(ticket, false);
         }
-        ticket.getTranscript().addMessage(event.getMessage(), ticket.getId());
+        if (ticket != null) {
+            ticket.getTranscript().addMessage(event.getMessage(), ticket.getId());
+        }
     }
 
     @Override
@@ -169,7 +182,9 @@ public class TicketListener extends ListenerAdapter {
         if (isValid(event) || event.getAuthor().isBot()) return;
 
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
-        ticket.getTranscript().editMessage(event.getMessageIdLong(), event.getMessage().getContentDisplay(), event.getMessage().getTimeEdited().toInstant().getEpochSecond());
+        var editedTime = event.getMessage().getTimeEdited();
+        long editedEpoch = editedTime != null ? editedTime.toInstant().getEpochSecond() : Instant.now().getEpochSecond();
+        ticket.getTranscript().editMessage(event.getMessageIdLong(), event.getMessage().getContentDisplay(), editedEpoch);
     }
 
     @Override

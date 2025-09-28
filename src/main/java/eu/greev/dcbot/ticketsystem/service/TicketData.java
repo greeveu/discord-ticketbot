@@ -105,7 +105,7 @@ public class TicketData {
                 .bind(6, ticket.getSupporter() != null ? ticket.getSupporter().getId() : "")
                 .bind(7, ticket.getInvolved()  == null || ticket.getInvolved().isEmpty() ?
                         "" : ticket.getInvolved().toString().replace("[", "").replace("]", ""))
-                .bind(8, ticket.getBaseMessage())
+                .bind(8, ticket.getBaseMessage() != null ? ticket.getBaseMessage() : "")
                 .bind(9, ticket.isOpen())
                 .bind(10, ticket.getId())
                 .execute());

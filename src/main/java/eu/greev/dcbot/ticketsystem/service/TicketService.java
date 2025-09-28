@@ -93,11 +93,12 @@ public class TicketService {
                             A member of staff will assist you shortly.
                             In the meantime, please describe your issue in as much detail as possible! :)
                             """)
-                .addField("Topic", ticket.getTopic(), false)
+                .addField("Topic", ticket.getTopic().length() > 1024 ? ticket.getTopic().substring(0, 1021) + "..." : ticket.getTopic(), false)
                 .setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
 
         if (!info.equals(Strings.EMPTY)) {
-            builder.addField("Information", info, false);
+            String infoField = info.length() > 1024 ? info.substring(0, 1021) + "..." : info;
+            builder.addField("Information", infoField, false);
         }
         ticketChannel.sendMessage(owner.getAsMention() + " has created a new ticket").complete();
 
@@ -187,11 +188,12 @@ public class TicketService {
                            A member of staff will assist you shortly.
                            In the mean time, please describe your issue in as much detail as possible! :)
                            """)
-                .addField("Topic", ticket.getTopic(), false)
+                .addField("Topic", ticket.getTopic().length() > 1024 ? ticket.getTopic().substring(0, 1021) + "..." : ticket.getTopic(), false)
                 .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
                 .setFooter(config.getServerName(), config.getServerLogo());
         if (!ticket.getInfo().equals(Strings.EMPTY)) {
-            builder.addField("Information", ticket.getInfo(), false);
+            String infoField = ticket.getInfo().length() > 1024 ? ticket.getInfo().substring(0, 1021) + "..." : ticket.getInfo();
+            builder.addField("Information", infoField, false);
         }
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
@@ -320,7 +322,9 @@ public class TicketService {
 
     private void saveTranscriptChanges(List<TranscriptEntity> changes) {
         TranscriptData transcriptData = ticketData.getTranscriptData();
-        for (TranscriptEntity entity : changes) {
+        // Work on a snapshot to avoid ConcurrentModificationException while other threads add to the list
+        List<TranscriptEntity> snapshot = new ArrayList<>(changes);
+        for (TranscriptEntity entity : snapshot) {
             if (entity instanceof Edit edit) {
                 transcriptData.addEditToMessage(edit);
                 continue;
@@ -338,7 +342,10 @@ public class TicketService {
                 transcriptData.addNewMessage(message);
             }
         }
-        changes.clear();
+        // Remove only the processed items to keep any newly added entries
+        synchronized (changes) {
+            changes.removeAll(snapshot);
+        }
     }
 
     private String generateChannelName(String topic, int ticketId) {
