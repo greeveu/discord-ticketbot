@@ -1,6 +1,7 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
 import eu.greev.dcbot.Main;
+import eu.greev.dcbot.ticketsystem.categories.ICategory;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +51,7 @@ public class Setup extends AbstractCommand {
                     .setEphemeral(true)
                     .queue();
             return;
-        } else if (!(event.getOption("support-category").getAsChannel() instanceof Category)) {
+        } else if (!(event.getOption("unclaimed-category").getAsChannel() instanceof Category)) {
             event.replyEmbeds(error.addField("❌ **Ticket setup failed**", "Option 'category' has to be a valid category", false)
                             .build())
                     .setEphemeral(true)
@@ -77,12 +78,12 @@ public class Setup extends AbstractCommand {
         }
 
         TextChannel baseChannel = event.getOption("base-channel").getAsChannel().asTextChannel();
-        long supportCategory = event.getOption("support-category").getAsChannel().getIdLong();
+        long supportCategory = event.getOption("unclaimed-category").getAsChannel().getIdLong();
 
         config.setServerName(serverName);
         config.setServerLogo(serverLogo);
         config.setServerId(serverId);
-        config.setSupportCategory(supportCategory);
+        config.setUnclaimedCategory(supportCategory);
         config.setBaseChannel(baseChannel.getIdLong());
         config.setStaffId(staffId);
         config.setAddToTicketThread(new ArrayList<>());
@@ -102,16 +103,16 @@ public class Setup extends AbstractCommand {
                 .setColor(color)
                 .addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?
-                        Just click the one of the buttons below or use </ticket create:%s> somewhere else.
+                        Just click the one of the buttons below.
                         We will try to handle your ticket as soon as possible.
-                        """.formatted(Main.getCreateCommandId()), false));
+                        """, false));
 
         StringSelectMenu.Builder selectionBuilder = StringSelectMenu.create("ticket-create-topic")
-                .setPlaceholder("Select your ticket topic")
-                .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
-                .addOption("Application", "select-application", "The place for Applications and Questions about it.")
-                .addOption( "Write a ban- or mute appeal","select-pardon","Got muted or banned for no reason?")
-                .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
+                .setPlaceholder("Select your ticket topic");
+
+        for (ICategory category : Main.CATEGORIES) {
+            selectionBuilder.addOption(category.getLabel(), "select-" + category.getId(), category.getDescription());
+        }
 
         baseChannel.sendMessageEmbeds(builder.build())
                 .setActionRow(selectionBuilder.build())
@@ -120,7 +121,7 @@ public class Setup extends AbstractCommand {
         EmbedBuilder builder1 = new EmbedBuilder().setFooter(serverName, serverLogo)
                 .setColor(color)
                 .setAuthor(member.getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
-                .addField("✅ **Ticket created**", "Successfully setup ticketsystem " + baseChannel.getAsMention(), false);
+                .addField("✅ **Ticket created**", "Successfully setup ticketsystem.\nDon't forget to add the ticket category ids to the config! " + baseChannel.getAsMention(), false);
 
         event.replyEmbeds(builder1.build()).setEphemeral(true).queue();
     }

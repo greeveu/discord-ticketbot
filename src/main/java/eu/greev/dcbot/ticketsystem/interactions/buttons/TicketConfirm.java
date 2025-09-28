@@ -11,6 +11,6 @@ public class TicketConfirm extends AbstractButton {
 
     @Override
     public void execute(Event evt) {
-        ticketService.closeTicket(ticketService.getTicketByChannelId(((ButtonInteractionEvent) evt).getChannel().getIdLong()), false, ((ButtonInteractionEvent) evt).getMember());
+        ticketService.closeTicket(ticketService.getTicketByChannelId(((ButtonInteractionEvent) evt).getChannel().getIdLong()), false, ((ButtonInteractionEvent) evt).getMember(), null);
     }
 }

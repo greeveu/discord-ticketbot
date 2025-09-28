@@ -1,5 +1,6 @@
 package eu.greev.dcbot.ticketsystem.interactions.commands;
 
+import eu.greev.dcbot.ticketsystem.categories.ICategory;
 import eu.greev.dcbot.ticketsystem.entities.ScrollEntity;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
@@ -70,7 +71,7 @@ public class GetTickets extends AbstractCommand {
                 event.replyEmbeds(error.build()).setEphemeral(true).queue();
                 return;
             }
-            builder.addField(generateName(ticket.getTopic(), tickets.get(i)), ticket.getTopic(), false);
+            builder.addField(generateName(ticket.getCategory(), tickets.get(i)), "", true);
         }
 
         int maxPage = tickets.size() / PAGE_SIZE + (tickets.size() % PAGE_SIZE == 0 ? 0 : 1);
@@ -83,17 +84,8 @@ public class GetTickets extends AbstractCommand {
         ).setEphemeral(true).queue(s -> PAGE_SCROLL_CACHE.add(scrollEntity));
     }
 
-    public static String generateName(String topic, int ticketId) {
-        String name;
-        if (topic.equals("Bugreport")) {
-            name = "Bugreport #" + ticketId;
-        } else if (topic.contains(" wants pardon ")) {
-            name = "Pardon #" + ticketId;
-        } else if (topic.contains(" apply ")) {
-            name = "Application #" + ticketId;
-        } else {
-            name = "Ticket #" + ticketId;
-        }
-        return name;
+    public static String generateName(ICategory category, int ticketId) {
+
+        return category.getLabel() + " # " + ticketId;
     }
 }

@@ -62,7 +62,7 @@ public class TicketsBackwards extends AbstractButton{
                 event.replyEmbeds(error.build()).setEphemeral(true).queue();
                 return;
             }
-            builder.addField(GetTickets.generateName(ticket.getTopic(), tickets.get(i)), ticket.getTopic(), false);
+            builder.addField(GetTickets.generateName(ticket.getCategory(), tickets.get(i)), "", true);
         }
 
         entity.setCurrentPage(currentPage - 1);

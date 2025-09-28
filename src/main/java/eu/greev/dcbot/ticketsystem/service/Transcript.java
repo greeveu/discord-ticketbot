@@ -103,7 +103,7 @@ public class Transcript {
                 writer.newLine();
             }
         } catch (IOException e) {
-            log.error("Could not clean transcript of ticket #" + ticketId, e);
+            log.error("Could not clean transcript of ticket #{}", ticketId, e);
         }
         return transcript;
     }

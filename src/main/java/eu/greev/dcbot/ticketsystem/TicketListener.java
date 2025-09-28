@@ -1,6 +1,7 @@
 package eu.greev.dcbot.ticketsystem;
 
 import eu.greev.dcbot.Main;
+import eu.greev.dcbot.ticketsystem.categories.ICategory;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
 import eu.greev.dcbot.ticketsystem.service.TicketService;
 import eu.greev.dcbot.utils.Config;
@@ -54,42 +55,38 @@ public class TicketListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberRemove(GuildMemberRemoveEvent event) {
-        Ticket ticket = ticketService.getOpenTicket(event.getUser());
-        if (ticket == null) {
-            return;
+        for (Ticket ticket : ticketService.getOpenTickets(event.getUser())) {
+            ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has left the server.", Instant.now().getEpochSecond(), ticket.getId());
+            EmbedBuilder info = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setFooter(config.getServerName(), config.getServerLogo())
+                    .addField("ℹ️ **Member left**", ticket.getOwner().getAsMention() + " has left the server.", false);
+            MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
+                    .addEmbeds(info.build());
+            if (ticket.getSupporter() != null) {
+                messageBuilder.addContent(ticket.getSupporter().getAsMention());
+            }
+            ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
         }
-        ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has left the server.", Instant.now().getEpochSecond(), ticket.getId());
-        EmbedBuilder info = new EmbedBuilder()
-                .setColor(Color.RED)
-                .setFooter(config.getServerName(), config.getServerLogo())
-                .addField("ℹ️ **Member left**", ticket.getOwner().getAsMention() + " has left the server.", false);
-        MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
-                .addEmbeds(info.build());
-        if (ticket.getSupporter() != null) {
-            messageBuilder.addContent(ticket.getSupporter().getAsMention());
-        }
-        ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
     }
 
     @Override
     public void onGuildMemberJoin(GuildMemberJoinEvent event) {
-        Ticket ticket = ticketService.getOpenTicket(event.getUser());
-        if (ticket == null) {
-            return;
-        }
-        ticket.getTextChannel().upsertPermissionOverride(event.getMember()).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
-        ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has rejoined the server.", Instant.now().getEpochSecond(), ticket.getId());
+        for (Ticket ticket : ticketService.getOpenTickets(event.getUser())) {
+            ticket.getTextChannel().upsertPermissionOverride(event.getMember()).setAllowed(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY, Permission.MESSAGE_SEND).queue();
+            ticket.getTranscript().addLogMessage(ticket.getOwner().getName() + " has rejoined the server.", Instant.now().getEpochSecond(), ticket.getId());
 
-        EmbedBuilder info = new EmbedBuilder()
-                .setColor(Color.RED)
-                .setFooter(config.getServerName(), config.getServerLogo())
-                .addField("ℹ️ **Member rejoined**", ticket.getOwner().getAsMention() + " has rejoined the server and was granted access to that ticket again.", false);
-        MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
-                .addEmbeds(info.build());
-        if (ticket.getSupporter() != null) {
-            messageBuilder.addContent(ticket.getSupporter().getAsMention());
+            EmbedBuilder info = new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setFooter(config.getServerName(), config.getServerLogo())
+                    .addField("ℹ️ **Member rejoined**", ticket.getOwner().getAsMention() + " has rejoined the server and was granted access to that ticket again.", false);
+            MessageCreateBuilder messageBuilder = new MessageCreateBuilder()
+                    .addEmbeds(info.build());
+            if (ticket.getSupporter() != null) {
+                messageBuilder.addContent(ticket.getSupporter().getAsMention());
+            }
+            ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
         }
-        ticket.getTextChannel().sendMessage(messageBuilder.build()).queue();
     }
 
     @Override
@@ -151,7 +148,12 @@ public class TicketListener extends ListenerAdapter {
         Ticket ticket = ticketService.getTicketByChannelId(event.getChannel().getIdLong());
         if (ticket.isWaiting()) {
             ticketService.toggleWaiting(ticket, false);
+            ticket.setWaitingSince(null);
+            ticket.setRemindersSent(0);
         }
+
+        ticket.setSupporterRemindersSent(0);
+
         ticket.getTranscript().addMessage(event.getMessage(), ticket.getId());
     }
 
@@ -185,16 +187,16 @@ public class TicketListener extends ListenerAdapter {
                     .setColor(Color.decode(config.getColor()))
                     .addField(new MessageEmbed.Field("**Support request**", """
                         You have questions or a problem?
-                        Just click the one of the buttons below or use </ticket create:%s> somewhere else.
+                        Just click the one of the buttons below.
                         We will try to handle your ticket as soon as possible.
-                        """.formatted(Main.getCreateCommandId()), false));
+                        """, false));
 
             StringSelectMenu.Builder selectionBuilder = StringSelectMenu.create("ticket-create-topic")
-                    .setPlaceholder("Select your ticket topic")
-                    .addOption("Report a bug","select-bug","Bugs can be annoying. Better call the exterminator.")
-                    .addOption("Application", "select-application", "The place for Applications and Questions about it.")
-                    .addOption( "Write a ban- or mute appeal","select-pardon","Got muted or banned for no reason?")
-                    .addOption("Your own topic","select-custom","You have another reason for opening the ticket? Specify!");
+                    .setPlaceholder("Select your ticket topic");
+
+            for (ICategory category : Main.CATEGORIES) {
+                selectionBuilder.addOption(category.getLabel(), "select-" + category.getId(), category.getDescription());
+            }
 
             event.getGuild().getTextChannelById(config.getBaseChannel()).sendMessageEmbeds(builder.build())
                     .setActionRow(selectionBuilder.build())

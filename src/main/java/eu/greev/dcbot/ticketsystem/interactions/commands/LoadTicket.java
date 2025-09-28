@@ -8,9 +8,9 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.events.Event;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import org.apache.logging.log4j.util.Strings;
 
 import java.awt.*;
+import java.util.Map;
 
 public class LoadTicket extends AbstractCommand {
 
@@ -43,14 +43,14 @@ public class LoadTicket extends AbstractCommand {
         builder.setColor(Color.decode(config.getColor()))
                 .setTitle("Ticket #" + ticketID)
                 .setAuthor(event.getMember().getEffectiveName(), null, event.getMember().getEffectiveAvatarUrl())
-                .addField("Topic", ticket.getTopic(), false)
                 .addField("Owner", ticket.getOwner().getAsMention(), false)
                 .addField("Closer", ticket.getCloser() == null ? "No closer" : ticket.getCloser().getAsMention(), false);
 
         if (ticket.getSupporter() != null)
             builder.addField("Supporter", ticket.getSupporter().getAsMention(), false);
-        if (!ticket.getInfo().equals(Strings.EMPTY))
-            builder.addField("Information", ticket.getInfo(), false);
+        for (Map.Entry<String, String> entry : ticket.getInfo().entrySet()) {
+            builder.addField(entry.getKey(), entry.getValue(), false);
+        }
         if (!ticket.getInvolved().isEmpty())
             builder.addField("Involved", ticket.getInvolved().toString(), false);
 

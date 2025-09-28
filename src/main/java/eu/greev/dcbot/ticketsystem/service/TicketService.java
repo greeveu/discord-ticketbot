@@ -1,5 +1,8 @@
 package eu.greev.dcbot.ticketsystem.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.greev.dcbot.ticketsystem.categories.ICategory;
 import eu.greev.dcbot.ticketsystem.entities.Edit;
 import eu.greev.dcbot.ticketsystem.entities.Message;
 import eu.greev.dcbot.ticketsystem.entities.Ticket;
@@ -18,12 +21,11 @@ import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import net.dv8tion.jda.api.utils.FileUpload;
 import org.apache.logging.log4j.util.Strings;
 import org.jdbi.v3.core.Jdbi;
-import org.jetbrains.annotations.Nullable;
 
 import java.awt.*;
 import java.time.Instant;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -34,6 +36,10 @@ public class TicketService {
     private final TicketData ticketData;
     private final Set<Ticket> allCurrentTickets = new HashSet<>();
     public static final String WAITING_EMOTE = "\uD83D\uDD50";
+
+    public TicketData getTicketData() {
+        return ticketData;
+    }
 
     public TicketService(JDA jda, Config config, Jdbi jdbi, TicketData ticketData) {
         this.jda = jda;
@@ -53,52 +59,70 @@ public class TicketService {
         }, 0, TimeUnit.MINUTES.toMillis(3));
     }
 
-    public boolean createNewTicket(String info, String topic, User owner) {
+    public Optional<String> createNewTicket(Map<String, String> info, ICategory category, User owner) {
         Guild guild = jda.getGuildById(config.getServerId());
+        int openTickets = 0;
         for (TextChannel textChannel : guild.getTextChannels()) {
             Ticket tckt = getTicketByChannelId(textChannel.getIdLong());
             if (tckt != null && tckt.getOwner().equals(owner)) {
-                return false;
+                openTickets++;
             }
         }
+
+        if (openTickets >= config.getMaxTicketsPerUser()) {
+            return Optional.of("You have reached the maximum number of open tickets (" + config.getMaxTicketsPerUser() + "). Please close an existing ticket before opening a new one.");
+        }
+
+        String infoJson;
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            infoJson = mapper.writeValueAsString(info);
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't parse ticket info map to json string! {}", e.getMessage());
+            return Optional.of("An internal error occurred while creating your ticket. Please contact a developer.");
+        }
+
         Ticket ticket = Ticket.builder()
                 .id(ticketData.getLastTicketId() + 1)
                 .ticketData(ticketData)
                 .transcript(new Transcript(new ArrayList<>()))
                 .owner(owner)
-                .topic(topic)
                 .isOpen(true)
+                .category(category)
                 .info(info)
                 .build();
 
-        TextChannel ticketChannel = guild.createTextChannel(generateChannelName(topic, ticketData.getLastTicketId() + 1), jda.getCategoryById(config.getSupportCategory()))
+        TextChannel ticketChannel = guild.createTextChannel(generateChannelName(ticket), jda.getCategoryById(config.getUnclaimedCategory()))
                 .addRolePermissionOverride(guild.getPublicRole().getIdLong(), null, List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY))
-                .addRolePermissionOverride(config.getStaffId(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
+                .addRolePermissionOverride(config.getStaffId(), List.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
                 .addMemberPermissionOverride(owner.getIdLong(), List.of(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY), null)
-                .setTopic(owner.getAsMention() + " | " + topic)
                 .complete();
         ThreadChannel thread = ticketChannel.createThreadChannel("Discussion-" + ticket.getId(), true).complete();
 
-        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, threadID, topic, info, owner) VALUES(?, ?, ?, ?, ?, ?)")
+        jdbi.withHandle(handle -> handle.createUpdate("INSERT INTO tickets(ticketID, channelID, threadID, category, info, owner) VALUES(?, ?, ?, ?, ?, ?)")
                 .bind(0, ticket.getId())
                 .bind(1, ticketChannel.getId())
                 .bind(2, thread.getId())
-                .bind(3, topic)
-                .bind(4, info)
+                .bind(3, ticket.getCategory().getId())
+                .bind(4, infoJson)
                 .bind(5, owner.getId())
                 .execute());
 
         EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setDescription("Hello there, " + owner.getAsMention() + "! " + """
-                            A member of staff will assist you shortly.
-                            In the meantime, please describe your issue in as much detail as possible! :)
-                            """)
-                .addField("Topic", ticket.getTopic(), false)
-                .setAuthor(owner.getName(),null, owner.getEffectiveAvatarUrl());
+                        A member of staff will assist you shortly.
+                        In the meantime, please describe your issue in as much detail as possible! :)
+                        """)
+                .setAuthor(owner.getName(), null, owner.getEffectiveAvatarUrl());
 
-        if (!info.equals(Strings.EMPTY)) {
-            builder.addField("Information", info, false);
+        StringBuilder details = new StringBuilder();
+
+        for (Map.Entry<String, String> entry : info.entrySet()) {
+            details.append("__").append(entry.getKey()).append("__\n").append(entry.getValue()).append("\n");
         }
+
+        builder.addField("Details", details.toString(), false);
+
         ticketChannel.sendMessage(owner.getAsMention() + " has created a new ticket").complete();
 
         String msgId = ticketChannel.sendMessageEmbeds(builder.build())
@@ -109,17 +133,21 @@ public class TicketService {
                 .setBaseMessage(msgId);
         allCurrentTickets.add(ticket);
 
+        ticketChannel.pinMessageById(msgId).queue();
+
         EmbedBuilder builder1 = new EmbedBuilder().setColor(Color.decode(config.getColor()))
                 .setFooter(config.getServerName(), config.getServerLogo())
                 .setDescription("""
-                    If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
-                    This message will delete itself after this minute.
-                    """);
+                        If you opened this ticket accidentally, you have now the opportunity to close it again for 1 minute! Just click `Nevermind!` below.
+                        This message will delete itself after this minute.
+                        """);
 
         ticketChannel.sendMessageEmbeds(builder1.build())
                 .setActionRow(Button.danger("nevermind", "Nevermind!"))
                 .queue(suc -> {
-                    suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {}, err -> {});
+                    suc.delete().queueAfter(1, TimeUnit.MINUTES, msg -> {
+                    }, err -> {
+                    });
                     ticket.setTempMsgId(suc.getId());
                 });
 
@@ -134,13 +162,13 @@ public class TicketService {
                 thread.addThreadMember(member).queue();
             }
         });
-        return true;
+        return Optional.empty();
     }
 
-    public void closeTicket(Ticket ticket, boolean wasAccident, Member closer) {
+    public void closeTicket(Ticket ticket, boolean wasAccident, Member closer, String message) {
         Transcript transcript = ticket.getTranscript();
         int ticketId = ticket.getId();
-        ticket.setCloser(closer.getUser()).setOpen(false);
+        ticket.setCloser(closer.getUser()).setOpen(false).setCloseMessage(message);
         if (wasAccident) {
             ticket.getTextChannel().delete().queue();
             jdbi.withHandle(handle -> handle.createUpdate("DELETE FROM tickets WHERE ticketID=?").bind(0, ticketId).execute());
@@ -155,10 +183,16 @@ public class TicketService {
                 .bind(1, ticketId)
                 .execute());
 
-        transcript.addLogMessage("[" + closer.getUser().getName() + "] closed the ticket.", Instant.now().getEpochSecond(), ticketId);
+        transcript.addLogMessage("[%s] closed the ticket%s".formatted(closer.getUser().getName(), message == null ? "." : " with following message: " + message), Instant.now().getEpochSecond(), ticketId);
 
         EmbedBuilder builder = new EmbedBuilder().setTitle("Ticket " + ticketId)
-                .addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
+                .addField("Closed by", closer.getAsMention(), false);
+
+        if (message != null && !message.isBlank()) {
+            builder.addField("Message", message, true);
+        }
+
+        builder.addField("Text Transcript⠀⠀⠀⠀⠀⠀⠀⠀", "See attachment", false)
                 .setColor(Color.decode(config.getColor()))
                 .setFooter(config.getServerName(), config.getServerLogo());
 
@@ -168,8 +202,7 @@ public class TicketService {
                         .flatMap(channel -> channel.sendMessageEmbeds(builder.build()).setFiles(FileUpload.fromData(transcript.toFile(ticketId))))
                         .complete();
             } catch (ErrorResponseException e) {
-                log.warn("Couldn't send [" + ticket.getOwner().getName() + "] their transcript since an error occurred:\nMeaning:"
-                        + e.getMeaning() + " | Message:" + e.getMessage() + " | Response:" + e.getErrorResponse());
+                log.warn("Couldn't send [{}] their transcript since an error occurred:\nMeaning:{} | Message:{} | Response:{}", ticket.getOwner().getName(), e.getMeaning(), e.getMessage(), e.getErrorResponse());
             }
         }
         saveTranscriptChanges(ticket.getTranscript().getRecentChanges());
@@ -180,24 +213,23 @@ public class TicketService {
         if (supporter == ticket.getOwner()) return false;
 
         ticket.setSupporter(supporter);
-        updateChannelTopic(ticket);
-        ticket.getTextChannel().getManager().setName("✓-" + generateChannelName(ticket.getTopic(), ticket.getId())).queue();
-        EmbedBuilder builder = new EmbedBuilder().setColor(Color.decode(config.getColor()))
-                .setDescription("Hello there, " + ticket.getOwner().getAsMention() + "! " + """
-                           A member of staff will assist you shortly.
-                           In the mean time, please describe your issue in as much detail as possible! :)
-                           """)
-                .addField("Topic", ticket.getTopic(), false)
-                .setAuthor(ticket.getOwner().getName(), null, ticket.getOwner().getEffectiveAvatarUrl())
-                .setFooter(config.getServerName(), config.getServerLogo());
-        if (!ticket.getInfo().equals(Strings.EMPTY)) {
-            builder.addField("Information", ticket.getInfo(), false);
-        }
+        ticket.getTextChannel().getManager().setName(generateChannelName(ticket)).queue();
 
         ticket.getThreadChannel().addThreadMember(supporter).queue();
 
+        if (config.getCategories().get(ticket.getCategory().getId()) != null) {
+            ticket.getTextChannel().getManager().setParent(jda.getCategoryById(config.getCategories().get(ticket.getCategory().getId()))).queue();
+        } else {
+            EmbedBuilder error = new EmbedBuilder()
+                    .setColor(Color.YELLOW)
+                    .setDescription("❗**Category %s doesn't have a channel category assigned, please tell an Admin to add it to the config!**".formatted(ticket.getCategory().getId()));
+            ticket.getTextChannel().sendMessageEmbeds(error.build()).queue();
+        }
+
+        ticket.getTextChannel().upsertPermissionOverride(jda.getRoleById(config.getStaffId())).setAllowed(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL, Permission.MESSAGE_HISTORY).queue();
+
         ticket.getTranscript().addLogMessage("[" + supporter.getName() + "] claimed the ticket.", Instant.now().getEpochSecond(), ticket.getId());
-        ticket.getTextChannel().editMessageEmbedsById(ticket.getBaseMessage(), builder.build())
+        ticket.getTextChannel().editMessageComponentsById(ticket.getBaseMessage())
                 .setActionRow(Button.danger("close", "Close"))
                 .queue();
         return true;
@@ -205,17 +237,8 @@ public class TicketService {
 
     public void toggleWaiting(Ticket ticket, boolean waiting) {
         TextChannelManager manager = ticket.getTextChannel().getManager();
-        String channelName = generateChannelName(ticket.getTopic(), ticket.getId());
         ticket.setWaiting(waiting);
-        if (waiting) {
-            manager.setName(WAITING_EMOTE + "-" + channelName).queue();
-        } else {
-            if (ticket.getSupporter() == null) {
-                manager.setName(channelName).queue();
-                return;
-            }
-            manager.setName("✓-" + channelName).queue();
-        }
+        manager.setName(generateChannelName(ticket)).queue();
     }
 
     public boolean addUser(Ticket ticket, User user) {
@@ -253,15 +276,7 @@ public class TicketService {
 
         ticket.getTranscript().addLogMessage("[" + owner.getUser().getName() + "] is the new ticket owner.", Instant.now().getEpochSecond(), ticket.getId());
         ticket.setOwner(owner.getUser());
-        updateChannelTopic(ticket);
         return true;
-    }
-
-    public void setTopic(Ticket ticket, String topic) {
-        ticket.getTranscript().addLogMessage("Set new topic to '" + topic + "'", Instant.now().getEpochSecond(), ticket.getId());
-
-        ticket.setTopic(topic);
-        updateChannelTopic(ticket);
     }
 
     public Ticket getTicketByChannelId(long idLong) {
@@ -301,21 +316,11 @@ public class TicketService {
         return ticketData.getTicketIdsByUser(String.valueOf(owner));
     }
 
-    public @Nullable Ticket getOpenTicket(User owner) {
-        Integer ticketId = ticketData.getOpenTicketOfUser(owner.getId());
-        if (ticketId == null) {
-            return null;
-        }
-        return this.getTicketByTicketId(ticketId);
-    }
-
-    public void updateChannelTopic(Ticket ticket) {
-        TextChannelManager channelManager = ticket.getTextChannel().getManager();
-        if (ticket.getSupporter() == null) {
-            channelManager.setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic()).queue();
-        } else {
-            channelManager.setTopic(ticket.getOwner().getAsMention() + " | " + ticket.getTopic() + " | " + ticket.getSupporter().getAsMention()).queue();
-        }
+    public List<Ticket> getOpenTickets(User owner) {
+        return ticketData.getOpenTicketsOfUser(owner.getId())
+                .stream()
+                .map(this::getTicketByTicketId)
+                .toList();
     }
 
     private void saveTranscriptChanges(List<TranscriptEntity> changes) {
@@ -341,19 +346,22 @@ public class TicketService {
         changes.clear();
     }
 
-    private String generateChannelName(String topic, int ticketId) {
-        String name;
-        if (topic.equals("Bugreport")) {
-            name = "bugreport-" + ticketId;
-        } else if (topic.equals("Complain")) {
-            name = "complain-" + ticketId;
-        }  else if (topic.contains(" wants pardon ")) {
-            name = "pardon-" + ticketId;
-        } else if (topic.contains(" apply ")) {
-            name = "application-" + ticketId;
-        } else {
-            name = "ticket-" + ticketId;
+    private String generateChannelName(Ticket ticket) {
+        String category = ticket.getCategory().getId();
+        int ticketId = ticket.getId();
+
+        String name = "";
+
+        if (ticket.isWaiting()) {
+            name += WAITING_EMOTE + "-";
         }
+
+        if (ticket.getSupporter() != null) {
+            name += config.getClaimEmojis().getOrDefault(ticket.getSupporter().getIdLong(), "✓") + "-";
+        }
+
+        name += category + "-" + ticketId;
+
         return name;
     }
 }

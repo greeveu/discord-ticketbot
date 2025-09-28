@@ -16,7 +16,7 @@ import java.awt.*;
 
 @AllArgsConstructor
 @Slf4j
-public class TicketClose implements Interaction{
+public class TicketClose implements Interaction {
     private final JDA jda;
     private final Config config;
     private final EmbedBuilder wrongChannel;
@@ -60,6 +60,7 @@ public class TicketClose implements Interaction{
                 .addField("Close Confirmation", "Do you really want to close this ticket?", true);
         event.replyEmbeds(builder.build())
                 .addActionRow(Button.primary("ticket-confirm", "✔️ Close"))
+                .addActionRow(Button.primary("ticket-confirm-message", "✔️ Close with message"))
                 .setEphemeral(true)
                 .queue();
     }

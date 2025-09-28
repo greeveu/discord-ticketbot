@@ -8,7 +8,9 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Getter
@@ -16,14 +18,16 @@ import java.util.List;
 public class Config {
     private long serverId;
     private long staffId;
-    private long supportCategory;
+    private long unclaimedCategory;
     private long baseChannel;
     private String serverLogo;
     private String serverName;
     private String color;
     private String token;
+    private int maxTicketsPerUser = 3;
     private List<Long> addToTicketThread;
-
+    private Map<Long, String> claimEmojis = new HashMap<>();
+    private Map<String, Long> categories = new HashMap<>();
 
     public void dumpConfig(String path) {
         DumperOptions options = new DumperOptions();
